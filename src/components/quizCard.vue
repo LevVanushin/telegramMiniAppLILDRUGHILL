@@ -50,7 +50,7 @@ const selectOption = (text) => {
   background-color: #234082; /* Основной синий фон */
   padding: 24px;
   border-radius: 20px;
-  max-width: 400px;
+  max-width: 300px;
   width: 100%;
   margin: 0 auto;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
