@@ -59,13 +59,14 @@ async function getData() {
     loading.value = false;
   }
 } 
-
+let check = ref(false)
 onMounted(() => {
   getData();
   const tg = window.Telegram?.WebApp;
   
   if (tg) {
       console.log(2)
+      check = true
     } else {
       console.log('no')
     }
