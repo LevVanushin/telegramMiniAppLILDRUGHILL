@@ -9,6 +9,7 @@
       :title="data[0].question_text"
       :options=[data[0].option_a,data[0].option_b,data[0].option_c,data[0].option_d]
       :correctOption="data[0]?.correct_option" 
+      
     />
     
     <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
@@ -57,10 +58,23 @@ async function getData() {
   } finally {
     loading.value = false;
   }
-}
+} 
 
 onMounted(() => {
   getData();
+  const tg = window.Telegram?.WebApp;
+  
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    
+    // Отправляем данные боту
+    tg.sendData(JSON.stringify({
+      event: 'app_opened',
+      userId: tg.initDataUnsafe?.user?.id,
+      timestamp: Date.now()
+    }));
+  }
 });
 </script>
 

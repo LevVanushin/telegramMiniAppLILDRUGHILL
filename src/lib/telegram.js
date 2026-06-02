@@ -11,7 +11,7 @@ if (!data || !data.botToken) {
 
 const bot = new Telegraf(data.botToken);
 
-bot.start((ctx) => ctx.reply(`ЕГЭ по реперу LILDRUGHILL 
+bot.start((ctx) => {ctx.reply(`ЕГЭ по реперу LILDRUGHILL 
 
 Состоит из 2 частей: 
 
@@ -25,8 +25,15 @@ bot.start((ctx) => ctx.reply(`ЕГЭ по реперу LILDRUGHILL
 
 Удачи! 
   `,  Markup.inlineKeyboard([
-  Markup.button.webApp("Начать прохождение", 'https://telegram-mini-app-lildrughill-x5j8.vercel.app/')
-])));
+  [Markup.button.webApp("Начать прохождение", 'https://telegram-mini-app-lildrughill-x5j8.vercel.app/?mode=fullscreen')]
+]))}
+
+);
+
+bot.on("F", ctx => {
+  console.log(1)
+  console.log(ctx.from.id)
+})
 bot.command('quiz', (ctx) => ctx.reply('Ссылка на викторину'));
 
 bot.launch();  
