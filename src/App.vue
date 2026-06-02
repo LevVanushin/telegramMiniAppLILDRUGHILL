@@ -60,18 +60,14 @@ async function getData() {
   }
 } 
 let check = ref(true)
-onMounted(() => {
-  getData();
-  const tg = window.Telegram?.WebApp;
+onMounted(async () => {
+  await getData();
   
-  if (tg) {
-      console.log(2)
-      check = true
-    } else {
-      console.log('no')
-      check = false
-    }
-})
+  const tg = window.Telegram.WebApp; // Без проверки
+  tg.ready();
+  tg.expand();
+  check.value = true;
+});
 </script>
 
 <style>
