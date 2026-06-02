@@ -69,6 +69,7 @@ onMounted(() => {
     } else {
       console.log('no')
     }
+})
 </script>
 
 <style>
