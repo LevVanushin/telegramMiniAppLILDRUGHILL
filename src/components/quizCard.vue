@@ -38,7 +38,7 @@ const props = defineProps({
     default: 'Вопрос'
   },
   options: {
-    type: String,
+    type: Array,
     required: true,
     default: () => ['ответ', 'ответ', 'ответ', 'ответ']
   }
@@ -55,6 +55,7 @@ const selectOption = (text) => {
 </script>
 
 <style scoped>
+  @import url('https://fonts.googleapis.com/css2?family=Geologica:wght,CRSV@100..900,0&display=swap');
 /* Основной контейнер – тёмный градиент + лёгкая текстура */
 .card-container {
   background: linear-gradient(145deg, #2d376e 0%, #0c122f 100%);
@@ -94,7 +95,7 @@ const selectOption = (text) => {
 }
 
 .army{
-font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif;
+  font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif;
   font-style: italic;
   font-size: 14px;
   font-weight: 500;
@@ -112,14 +113,15 @@ font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif;
 .main-title {
   font-size: 28px;
   font-weight: 800;
+  font-family: "Geologica", sans-serif;  
   line-height: 1.25;
+  letter-spacing: 2px;
   margin: 0 0 12px 0;
   text-transform: uppercase;
   background: linear-gradient(135deg, #ffffff 0%, #b9c8ff 100%);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  letter-spacing: -0.3px;
 }
 
 /* Подзаголовок */
