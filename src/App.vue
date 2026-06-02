@@ -76,6 +76,7 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   gap: 170px;
+  padding: 15px;
 }
 
 .loading, .error, .debug {
