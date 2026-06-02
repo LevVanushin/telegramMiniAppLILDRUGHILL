@@ -120,10 +120,9 @@ const selectOption = (text) => {
   letter-spacing: 2px;
   margin: 0 0 12px 0;
   text-transform: uppercase;
-  background: linear-gradient(135deg, #ffffff 0%, #b9c8ff 100%);
   background-clip: text;
   -webkit-background-clip: text;
-  color: transparent;
+  color: white;
 }
 
 /* Подзаголовок */

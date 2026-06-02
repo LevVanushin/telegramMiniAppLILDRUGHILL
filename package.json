@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "bot": "node ./src/lib/telegram.js",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "nodemon ./src/lib/telegram.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
+    "nodemon": "^3.1.14",
     "telegraf": "^4.16.3",
     "vue": "^3.5.34"
   },

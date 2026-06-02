@@ -3,7 +3,6 @@
     <img src="./assets/mike.png" alt="" class="mike">
     
     <div v-if="loading" class="loading">Загрузка вопросов...</div>
-    <div v-if="window.Telegram && window.Telegram.WebApp">Вы в телеграмме</div>
     <quizCard 
       v-else-if="data.length > 0"
       class="quiz" 
