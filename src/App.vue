@@ -4,7 +4,7 @@
     
     <div v-if="loading" class="loading">Загрузка вопросов...</div>
     <quizCard 
-      v-else-if="data.length > 0"
+      v-else-if="check"
       class="quiz" 
       :title="data[0].question_text"
       :options=[data[0].option_a,data[0].option_b,data[0].option_c,data[0].option_d]
@@ -59,7 +59,7 @@ async function getData() {
     loading.value = false;
   }
 } 
-let check = ref(false)
+let check = ref(true)
 onMounted(() => {
   getData();
   const tg = window.Telegram?.WebApp;
@@ -69,6 +69,7 @@ onMounted(() => {
       check = true
     } else {
       console.log('no')
+      check = false
     }
 })
 </script>
