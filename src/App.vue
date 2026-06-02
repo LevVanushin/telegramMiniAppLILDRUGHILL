@@ -124,4 +124,10 @@ onMounted(() => {
 .quiz {
   align-self: center;
 }
+
+@media(max-width: 330px) {
+  .container{
+    padding: 30px;
+  }
+}
 </style>
