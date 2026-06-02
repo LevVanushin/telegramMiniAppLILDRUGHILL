@@ -68,6 +68,7 @@ const selectOption = (text) => {
   color: #ffffff;
   box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   transition: transform 0.2s ease;
+  
 }
 
 .card-container:hover {

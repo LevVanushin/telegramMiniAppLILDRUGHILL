@@ -2,17 +2,17 @@
   <div class="container">
     <img src="./assets/mike.png" alt="" class="mike">
     
-    <div v-if="loading" class="loading">Загрузка вопросов...</div>
+    <div v-if="!loading" class="loading">Загрузка вопросов...</div>
     
     <quizCard 
-      v-else-if="data.length > 0"
+      v-else-if="true"
       class="quiz" 
       :title="data[0]?.question_text"
       :optionA="data[0]?.option_a"
       :optionB="data[0]?.option_b"
       :optionC="data[0]?.option_c"
       :optionD="data[0]?.option_d"
-      :correctOption="data[0]?.correct_option"
+      :correctOption="data[0]?.correct_option" 
     />
     
     <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
@@ -64,9 +64,9 @@ async function getData() {
   }
 }
 
-onMounted(() => {
-  getData();
-});
+// onMounted(() => {
+//   getData();
+// });
 </script>
 
 <style>
@@ -75,7 +75,7 @@ onMounted(() => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 170px;
+  gap: 50px;
   padding: 15px;
 }
 
@@ -98,7 +98,7 @@ onMounted(() => {
 
 .mike {
   position: relative;
-  top: 100px;
+  top: 20px;
   width: 250px;
   height: 250px;
 }
@@ -115,7 +115,6 @@ onMounted(() => {
 }
 
 .quiz {
-  margin: 50% auto;
   align-self: center;
 }
 </style>
