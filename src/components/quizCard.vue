@@ -51,6 +51,8 @@ const emit = defineEmits(['select']);
 const selectOption = (text) => {
   console.log('Выбран вариант:', text);
   emit('select', text);
+
+  
 };
 </script>
 

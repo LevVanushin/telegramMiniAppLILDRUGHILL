@@ -3,7 +3,7 @@
     <img src="./assets/mike.png" alt="" class="mike">
     
     <div v-if="loading" class="loading">Загрузка вопросов...</div>
-    
+    <div v-if="window.Telegram && window.Telegram.WebApp">Вы в телеграмме</div>
     <quizCard 
       v-else-if="data.length > 0"
       class="quiz" 
@@ -26,6 +26,12 @@ import { onMounted, ref } from "vue";
 const data = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
+// const information = ref({
+//   currentQuestion: true,
+//   finallyQuestion: false,
+// });
+
+
 
 async function getData() {
   try {
@@ -42,6 +48,7 @@ async function getData() {
   
     data.value = response.data || [];
     
+    
     console.log('Количество вопросов:', data.value.length);
     console.log('Первый вопрос:', data.value[0]);
     
@@ -55,6 +62,7 @@ async function getData() {
 
 onMounted(() => {
   getData();
+
 });
 </script>
 
