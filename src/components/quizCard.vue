@@ -1,18 +1,15 @@
 <template>
   <div class="card-container">
-    <!-- Метка "ВЫБОР ОТВЕТА" -->
-    <div class="status-badge">
-      <div class="status-dot"></div>
-      <span class="status-text">ВЫБОР ОТВЕТА</span>
-    </div>
+    <!-- Новая курсивная надпись -->
+    <div class="army-signature">lildrughill army</div>
 
-    <!-- Заголовок -->
-    <h1 class="main-title">ЧТО ВДОХНОВИЛО НАЗВАНИЕ VIPERR</h1>
+    <!-- Заголовок (передается через props) -->
+    <h1 class="main-title">{{ title }}</h1>
 
     <!-- Подзаголовок -->
     <p class="subtitle">выбери один вариант</p>
 
-    <!-- Список вариантов -->
+    <!-- Список вариантов (передается через props) -->
     <div class="options-list">
       <button 
         v-for="(option, index) in options" 
@@ -20,6 +17,7 @@
         class="option-button"
         @click="selectOption(option)"
       >
+        <span class="option-index">{{ String.fromCharCode(65 + index) }}</span>
         {{ option }}
       </button>
     </div>
@@ -27,132 +25,194 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { defineProps, defineEmits } from 'vue';
 
-// Данные для кнопок
-const options = ref([
-  'машина',
-  'клуб the viper room',
-  'старый ник 9mice',
-  'название тура'
-]);
+// Определяем входящие параметры
+const props = defineProps({
+  title: {
+    type: String,
+    required: true,
+    default: 'Вопрос'
+  },
+  options: {
+    type: Array,
+    required: true,
+    default: () => ['ответ', 'ответ', 'ответ', 'ответ']
+  }
+});
 
-// Логика выбора (можно расширить)
+// Определяем события
+const emit = defineEmits(['select']);
+
+// Логика выбора
 const selectOption = (text) => {
   console.log('Выбран вариант:', text);
-  // Здесь можно добавить логику подсветки или перехода
+  emit('select', text);
 };
 </script>
 
 <style scoped>
-/* Основной контейнер */
+/* Основной контейнер – тёмный градиент + лёгкая текстура */
 .card-container {
-  background-color: #234082; /* Основной синий фон */
-  padding: 24px;
-  border-radius: 20px;
-  max-width: 300px;
+  background: linear-gradient(145deg, #2d376e 0%, #0c122f 100%);
+  padding: 28px 24px 32px;
+  border-radius: 32px;
+  max-width: 500px;
   width: 100%;
   margin: 0 auto;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
   box-sizing: border-box;
   color: #ffffff;
+  box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: transform 0.2s ease;
 }
 
-/* Бейдж статуса */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  background-color: #2f4da1; /* Более светлый синий для бейджа */
-  padding: 6px 12px 6px 6px;
-  border-radius: 30px;
-  margin-bottom: 20px;
+.card-container:hover {
+  transform: translateY(-3px);
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  background-color: #ffffff; /* Белая точка вместо розовой */
-  border-radius: 50%;
-  margin-right: 8px;
-  
-  /* Анимация мигания */
-  animation: blink 1.5s ease-in-out infinite;
-}
-
-@keyframes blink {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.2;
-  }
-}
-
-.status-text {
-  font-size: 11px;
-  font-weight: 800;
+/* Новая курсивная подпись */
+.army-signature {
+  font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif;
+  font-style: italic;
+  font-size: 14px;
+  font-weight: 500;
   letter-spacing: 0.5px;
-  color: #ffffff;
+  color: #b9cbff;
+  text-align: left;
+  margin-bottom: 16px;
+  opacity: 0.8;
+  border-bottom: 1px dashed rgba(93, 129, 225, 0.3);
+  padding-bottom: 14px;
+  display: inline-block;
+  width: 100%;
 }
 
-/* Заголовок */
+/* Заголовок – крупный, с лёгким градиентом текста */
 .main-title {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 800;
-  line-height: 1.2;
-  margin: 0 0 8px 0;
+  line-height: 1.25;
+  margin: 0 0 12px 0;
   text-transform: uppercase;
-  color: #ffffff;
+  background: linear-gradient(135deg, #ffffff 0%, #b9c8ff 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  letter-spacing: -0.3px;
 }
 
 /* Подзаголовок */
 .subtitle {
-  font-size: 14px;
-  color: #cbd5e1; /* Светло-серый/голубоватый для контраста с белым */
-  margin: 0 0 24px 0;
+  font-size: 13px;
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #8d9bee;
+  margin: 0 0 28px 0;
+  border-left: 3px solid #5d81e1;
+  padding-left: 12px;
 }
 
 /* Список кнопок */
 .options-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
-/* Сами кнопки */
+/* Кнопки – глянцевые, с градиентом и тенью */
 .option-button {
-  background-color: #2f4da1; /* Светло-синий для кнопок (чтобы выделялись) */
+  background: linear-gradient(105deg, #1e2a5e 0%, #172147 100%);
   border: none;
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 16px 20px;
   text-align: left;
-  font-size: 15px;
-  font-weight: 700;
-  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f0f3ff;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+  box-shadow: 0 6px 0 #182043;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Эффекты при наведении и клике */
+/* Буква-индекс (A, B, C, D) */
+.option-index {
+  background: rgba(255, 255, 255, 0.12);
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 18px;
+  color: #b9cbff;
+  transition: 0.2s;
+}
+
+/* Эффект наведения */
 .option-button:hover {
-  background-color: #3b5bb5; /* Еще светлее при наведении */
+  background: linear-gradient(105deg, #2a3b7c 0%, #1f2a5a 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 #0b0f24;
 }
 
+.option-button:hover .option-index {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  transform: scale(1.02);
+}
+
+/* Эффект нажатия */
 .option-button:active {
-  transform: scale(0.98);
-  background-color: #1e3466; /* Темнее при клике */
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #0b0f24;
+  transition: 0.05s;
 }
 
-/* Адаптив для маленьких экранов */
-@media (max-width: 420px) {
+/* Эффект скользящей волны */
+.option-button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  transition: 0.4s;
+}
+
+.option-button:hover::after {
+  left: 100%;
+}
+
+/* Адаптив */
+@media (max-width: 520px) {
+  .card-container {
+    padding: 20px 18px 24px;
+    border-radius: 24px;
+  }
   .main-title {
-    font-size: 20px;
+    font-size: 22px;
   }
   .option-button {
     font-size: 14px;
-    padding: 14px 16px;
+    padding: 12px 16px;
+  }
+  .option-index {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+  .army-signature {
+    font-size: 12px;
+    margin-bottom: 12px;
   }
 }
 </style>
