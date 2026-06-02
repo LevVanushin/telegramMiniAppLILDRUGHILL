@@ -4,11 +4,6 @@
     
     <div v-if="loading" class="loading">Загрузка вопросов...</div>
     
-    <!-- ПРОВЕРКА: смотрим что лежит в data -->
-    <div v-if="!loading && data.length === 0 && !errorMessage" class="debug">
-      ⚠️ В data пусто. Проверьте консоль.
-    </div>
-    
     <quizCard 
       v-else-if="data.length > 0"
       class="quiz" 

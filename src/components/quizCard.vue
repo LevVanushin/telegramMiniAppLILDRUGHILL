@@ -1,7 +1,10 @@
 <template>
   <div class="card-container">
     <!-- Новая курсивная надпись -->
-    <div class="army-signature">lildrughill army</div>
+    <div class="army-signature">
+      <p class="army">lildrughill army</p>
+      <p class="mikeCaption">MIKE</p>
+    </div>
 
     <!-- Заголовок (передается через props) -->
     <h1 class="main-title">{{ title }}</h1>
@@ -35,7 +38,7 @@ const props = defineProps({
     default: 'Вопрос'
   },
   options: {
-    type: Array,
+    type: String,
     required: true,
     default: () => ['ответ', 'ответ', 'ответ', 'ответ']
   }
@@ -73,18 +76,34 @@ const selectOption = (text) => {
 
 /* Новая курсивная подпись */
 .army-signature {
-  font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif;
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed rgba(93, 129, 225, 0.3);
+}
+
+.mikeCaption {
+  text-align: right;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.army{
+font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif;
   font-style: italic;
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.5px;
+}
+.army, .mikeCaption {
+  position: relative;
+  
   color: #b9cbff;
-  text-align: left;
-  margin-bottom: 16px;
   opacity: 0.8;
-  border-bottom: 1px dashed rgba(93, 129, 225, 0.3);
-  padding-bottom: 14px;
-  display: inline-block;
   width: 100%;
 }
 
@@ -104,6 +123,7 @@ const selectOption = (text) => {
 
 /* Подзаголовок */
 .subtitle {
+  position: relative;
   font-size: 13px;
   font-weight: 500;
   text-transform: uppercase;
@@ -123,6 +143,8 @@ const selectOption = (text) => {
 
 /* Кнопки – глянцевые, с градиентом и тенью */
 .option-button {
+  position: relative;
+
   background: linear-gradient(105deg, #1e2a5e 0%, #172147 100%);
   border: none;
   border-radius: 20px;
@@ -137,7 +159,6 @@ const selectOption = (text) => {
   display: flex;
   align-items: center;
   gap: 14px;
-  position: relative;
   overflow: hidden;
 }
 
