@@ -61,7 +61,7 @@ async function getData() {
 
 onMounted(() => {
   getData();
-
+  window.Telegram.WebApp.expand()
 });
 </script>
 
