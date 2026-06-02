@@ -65,17 +65,10 @@ onMounted(() => {
   const tg = window.Telegram?.WebApp;
   
   if (tg) {
-    tg.ready();
-    tg.expand();
-    
-    // Отправляем данные боту
-    tg.sendData(JSON.stringify({
-      event: 'app_opened',
-      userId: tg.initDataUnsafe?.user?.id,
-      timestamp: Date.now()
-    }));
-  }
-});
+      console.log(2)
+    } else {
+      console.log('no')
+    }
 </script>
 
 <style>

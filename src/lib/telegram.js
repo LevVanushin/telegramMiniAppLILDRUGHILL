@@ -30,10 +30,13 @@ bot.start((ctx) => {ctx.reply(`ЕГЭ по реперу LILDRUGHILL
 
 );
 
-bot.on("F", ctx => {
-  console.log(1)
-  console.log(ctx.from.id)
-})
+bot.on('web_app_data', (ctx) => {
+  const data = JSON.parse(ctx.webAppData.data.json());
+  console.log('Получено:', data);
+  console.log('Пользователь:', ctx.from.id);
+  
+  ctx.reply('Викторина открыта!');
+});
 bot.command('quiz', (ctx) => ctx.reply('Ссылка на викторину'));
 
 bot.launch();  
