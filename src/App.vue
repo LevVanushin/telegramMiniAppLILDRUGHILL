@@ -40,7 +40,7 @@
       <!-- Результаты после прохождения -->
       <div v-else-if="quizFinished" class="results">
         <h2>Викторина завершена!</h2>
-        <p>Правильных ответов: {{ score * 5 }} из {{ data.length * 5 }}</p>
+        <p>Ваш балл: {{ score * 5 }} из {{ data.length * 5 }}</p>
       </div>
       
       <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
