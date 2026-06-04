@@ -56,7 +56,6 @@ const selectOption = (text, id) => {
   emit('select', text);
 
   localStorage.setItem("answer", text);
-  sessionStorage("id", );
 };
 </script>
 
