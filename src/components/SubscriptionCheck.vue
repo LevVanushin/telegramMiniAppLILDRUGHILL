@@ -33,7 +33,7 @@ import { supabase } from '../lib/supabase.js';
 
 const emit = defineEmits(['verified']);
 
-const CHANNEL_USERNAME = '@lildrughillarmy'; // без @
+const CHANNEL_USERNAME = 'lildrughillarmy'; // без @
 const CHANNEL_LINK = 'https://t.me/lildrughillarmy';
 
 const checking = ref(false);
