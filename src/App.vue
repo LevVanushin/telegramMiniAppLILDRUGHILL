@@ -203,7 +203,7 @@ async function getData() {
 } 
 
 onMounted(async () => {
-  getSession();
+  // getSession();
   await getData();
 });
 </script>
