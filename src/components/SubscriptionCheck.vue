@@ -7,24 +7,16 @@
     </div>
 
     <h1 class="main-title">Подпишись на канал</h1>
-    
     <p class="subtitle">обязательное условие</p>
-
-    <p class="description">
-      Для прохождения викторины необходимо подписаться на наш Telegram канал
-    </p>
+    <p class="description">Для прохождения викторины необходимо подписаться на наш Telegram канал</p>
 
     <div class="options-list">
-      <a :href="CHANNEL_LINK" target="_blank" class="option-button subscribe-btn">
+      <button class="option-button subscribe-btn" @click="openTelegramLink">
         <span class="option-index">📱</span>
         Подписаться
-      </a>
+      </button>
       
-      <button 
-        @click="checkSubscription" 
-        class="option-button check-btn" 
-        :disabled="checking"
-      >
+      <button @click="checkSubscription" class="option-button check-btn" :disabled="checking">
         <span class="option-index">✅</span>
         {{ checking ? 'Проверяем...' : 'Проверить подписку' }}
       </button>
@@ -41,8 +33,7 @@ import { supabase } from '../lib/supabase.js';
 
 const emit = defineEmits(['verified']);
 
-// НАСТРОЙКИ: замени на свои
-const CHANNEL_USERNAME = '@lildrughillarmy"';
+const CHANNEL_USERNAME = '@lildrughillarmy';
 const CHANNEL_LINK = 'https://t.me/lildrughillarmy';
 
 let BOT_TOKEN = '';
@@ -51,6 +42,42 @@ const checking = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
 const tokenLoaded = ref(false);
+
+// Функция получения user_id
+function getUserId() {
+  // Из URL параметров
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlUserId = urlParams.get('user_id');
+  if (urlUserId) {
+    localStorage.setItem('user_id', urlUserId);
+    return urlUserId;
+  }
+  
+  // Из localStorage
+  const savedUserId = localStorage.getItem('user_id');
+  if (savedUserId) {
+    return savedUserId;
+  }
+  
+  // Из Telegram WebApp
+  const tg = window.Telegram?.WebApp;
+  const tgUserId = tg?.initDataUnsafe?.user?.id;
+  if (tgUserId) {
+    localStorage.setItem('user_id', tgUserId);
+    return tgUserId;
+  }
+  
+  return null;
+}
+
+function openTelegramLink() {
+  const tg = window.Telegram?.WebApp;
+  if (tg) {
+    tg.openTelegramLink(CHANNEL_LINK);
+  } else {
+    window.open(CHANNEL_LINK, '_blank');
+  }
+}
 
 async function loadBotToken() {
   try {
@@ -63,20 +90,16 @@ async function loadBotToken() {
     
     if (data && data.botToken) {
       BOT_TOKEN = data.botToken;
-      console.log(BOT_TOKEN)
       tokenLoaded.value = true;
-    } else {
-      throw new Error('Токен не найден');
     }
   } catch (error) {
-    console.error('Ошибка загрузки токена:', error);
-    errorMessage.value = 'Ошибка загрузки токена. Попробуйте позже.';
+    errorMessage.value = 'Ошибка загрузки токена';
   }
 }
 
 async function checkSubscription() {
   if (!tokenLoaded.value) {
-    errorMessage.value = 'Инициализация... Попробуйте через секунду';
+    errorMessage.value = 'Загрузка... Попробуйте через секунду';
     return;
   }
   
@@ -84,11 +107,10 @@ async function checkSubscription() {
   errorMessage.value = '';
   successMessage.value = '';
   
-  const tg = window.Telegram?.WebApp;
-  const userId = tg?.initDataUnsafe?.user?.id;
+  const userId = getUserId();
   
   if (!userId) {
-    errorMessage.value = 'Не удалось определить пользователя. Откройте приложение через Telegram.';
+    errorMessage.value = 'Не удалось определить пользователя. Нажмите /start в боте и откройте заново.';
     checking.value = false;
     return;
   }
@@ -96,12 +118,10 @@ async function checkSubscription() {
   try {
     const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chat_id: `@${CHANNEL_USERNAME}`,
-        user_id: userId
+        user_id: parseInt(userId)
       })
     });
     
@@ -110,24 +130,19 @@ async function checkSubscription() {
     if (data.ok && data.result) {
       const status = data.result.status;
       if (status === 'creator' || status === 'administrator' || status === 'member' || status === 'restricted') {
-        successMessage.value = '✅ Подписка подтверждена! Перенаправляем...';
-        
+        successMessage.value = '✅ Подписка подтверждена!';
         localStorage.setItem('subscription_verified', 'true');
         localStorage.setItem('subscription_user_id', userId);
         localStorage.setItem('subscription_verified_at', Date.now());
-        
-        setTimeout(() => {
-          emit('verified');
-        }, 1500);
+        setTimeout(() => emit('verified'), 1500);
       } else {
-        errorMessage.value = '❌ Вы не подписаны на канал. Подпишитесь и нажмите "Проверить подписку"';
+        errorMessage.value = '❌ Вы не подписаны на канал';
       }
     } else {
-      errorMessage.value = 'Ошибка проверки. Попробуйте позже.';
+      errorMessage.value = 'Ошибка проверки';
     }
   } catch (error) {
-    console.error('Ошибка проверки подписки:', error);
-    errorMessage.value = 'Не удалось проверить подписку. Попробуйте позже.';
+    errorMessage.value = 'Не удалось проверить подписку';
   } finally {
     checking.value = false;
   }
@@ -137,9 +152,7 @@ function checkSavedVerification() {
   const saved = localStorage.getItem('subscription_verified');
   const savedUserId = localStorage.getItem('subscription_user_id');
   const savedTime = localStorage.getItem('subscription_verified_at');
-  
-  const tg = window.Telegram?.WebApp;
-  const currentUserId = tg?.initDataUnsafe?.user?.id;
+  const currentUserId = getUserId();
   
   if (saved === 'true' && savedUserId && currentUserId && savedUserId == currentUserId) {
     const hoursPassed = (Date.now() - (parseInt(savedTime) || 0)) / (1000 * 60 * 60);
@@ -315,7 +328,6 @@ onMounted(async () => {
 .check-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
 }
 
 .error-message {
@@ -348,10 +360,6 @@ onMounted(async () => {
     width: 28px;
     height: 28px;
     font-size: 16px;
-  }
-  .army-signature {
-    font-size: 12px;
-    margin-bottom: 12px;
   }
   .description {
     font-size: 13px;

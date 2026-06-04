@@ -11,24 +11,38 @@ if (!data || !data.botToken) {
 
 const bot = new Telegraf(data.botToken);
 
-bot.start((ctx) => {ctx.reply(`ЕГЭ по реперу LILDRUGHILL 
+// bot.start((ctx) => {ctx.reply(`ЕГЭ по реперу LILDRUGHILL 
 
-Состоит из 2 частей: 
+// Состоит из 2 частей: 
 
-• 1 часть: 16 тестовых вопросов. v
+// • 1 часть: 16 тестовых вопросов. v
 
-• 2 часть: письменная часть, ответ на вопрос. Объем ответа не важен.
+// • 2 часть: письменная часть, ответ на вопрос. Объем ответа не важен.
 
-Проверяться будет в ручную. 
+// Проверяться будет в ручную. 
 
-Обязательным условием прохождения экзамена является подписка на наш телеграмм!
+// Обязательным условием прохождения экзамена является подписка на наш телеграмм!
 
-Удачи! 
-  `,  Markup.inlineKeyboard([
-  [Markup.button.webApp("Начать прохождение", 'https://telegram-mini-app-lildrughill-x5j8.vercel.app/?mode=fullscreen')]
-]))}
+// Удачи! 
+//   `,  Markup.inlineKeyboard([
+//   [Markup.button.webApp("Начать прохождение", 'https://telegram-mini-app-lildrughill-x5j8.vercel.app/?mode=fullscreen')]
+// ]))}
 
-);
+// );
+
+bot.start((ctx) => {
+  const userId = ctx.from.id;
+  // Замени URL на свой
+  const appUrl = `https://telegram-mini-app-lildrughill-x5j8.vercel.app?user_id=${userId}`;
+  
+  ctx.reply(`Привет, ${ctx.from.first_name}! Подпишись на канал и проходи викторину.`, {
+    reply_markup: {
+      inline_keyboard: [[
+        { text: '🎮 Открыть викторину', web_app: { url: appUrl } }
+      ]]
+    }
+  });
+});
 
 bot.on('web_app_data', (ctx) => {
   const data = JSON.parse(ctx.webAppData.data.json());

@@ -2,23 +2,21 @@
   <div class="container">
     <img src="./assets/mike.png" alt="" class="mike">
     
-    <!-- Если проверка подписки не пройдена -->
+    <!-- Проверка подписки -->
     <SubscriptionCheck 
       v-if="!subscriptionVerified && !loading && data.length > 0"
-      @verified="onSubscriptionVerified"
+      @verified="subscriptionVerified = true"
     />
     
-    <!-- Если подписка подтверждена, показываем викторину -->
+    <!-- Остальной код викторины оберни в v-else -->
     <template v-else>
       <div v-if="loading" class="loading">Загрузка вопросов...</div>
       
-      <!-- Если викторина уже пройдена - показываем результат -->
       <div v-else-if="quizCompleted" class="results">
         <h2>Викторина уже пройдена!</h2>
         <p>Ваш результат: {{ completedScore }} из {{ data.length }}</p>
       </div>
       
-      <!-- Показываем текущий вопрос -->
       <quizCard 
         v-else-if="data.length > 0 && !quizFinished"
         class="quiz" 
@@ -28,7 +26,6 @@
         @select="handleAnswer"
       />
       
-      <!-- Результаты после прохождения -->
       <div v-else-if="quizFinished" class="results">
         <h2>Викторина завершена!</h2>
         <p>Правильных ответов: {{ score }} из {{ data.length }}</p>
@@ -47,6 +44,10 @@ import quizCard from "./components/quizCard.vue";
 import SubscriptionCheck from "./components/SubscriptionCheck.vue";
 import { onMounted, ref, computed } from "vue";
 
+import SubscriptionCheck from "./components/SubscriptionCheck.vue";
+
+// Добавь переменную
+const subscriptionVerified = ref(false);
 const data = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
