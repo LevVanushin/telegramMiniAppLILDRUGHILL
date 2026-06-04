@@ -12,7 +12,7 @@
     
     <!-- Показываем текущий вопрос -->
     <quizCard 
-      v-else-if="data.length > 0"
+      v-else-if="data.length > 0 && !quizFinished"
       class="quiz" 
       :title="currentQuestion?.question_text"
       :options="currentOptions"
