@@ -228,7 +228,7 @@ onMounted(async () => {
   justify-content: center;
   align-items: center;
   gap: 30px;
-  padding: 15px 0px 15px 0px ;
+  padding: 15px 30px 20px 30px ;
 }
 
 .loading, .error {
