@@ -1,5 +1,8 @@
 <template>
   <div class="container">
+    <div v-if="debugMode" class="debug-panel">
+      <p v-for="(log, i) in logs" :key="i">{{ log }}</p>
+    </div>
     <img src="./assets/mike.png" alt="" class="mike">
     
     <div v-if="loading" class="loading">Загрузка вопросов...</div>
@@ -31,6 +34,14 @@ const errorMessage = ref('');
 //   finallyQuestion: false,
 // });
 
+const debugMode = ref(true); // Включи для отладки
+const logs = ref([]);
+
+function addLog(msg) {
+  const time = new Date().toLocaleTimeString();
+  logs.value.unshift(`${time}: ${msg}`);
+  console.log(msg); // В браузере тоже покажет
+}
 
 
 async function getData() {
@@ -60,17 +71,38 @@ async function getData() {
   }
 } 
 let check = ref(true)
+
 onMounted(async () => {
   await getData();
   
-  const tg = window.Telegram.WebApp; // Без проверки
-  tg.ready();
-  tg.expand();
-  check.value = true;
+  addLog('App mounted');
+  
+  const tg = window.Telegram?.WebApp;
+  addLog(`Telegram: ${tg ? 'найден' : 'не найден'}`);
+  
+  if (tg?.initDataUnsafe?.user) {
+    addLog(`User ID: ${tg.initDataUnsafe.user.id}`);
+  }
+
 });
 </script>
 
 <style>
+
+.debug-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.8);
+  color: lime;
+  font-size: 10px;
+  padding: 5px;
+  max-height: 100px;
+  overflow-y: auto;
+  z-index: 9999;
+  font-family: monospace;
+}
 .container {
   display: flex;
   flex-direction: column;

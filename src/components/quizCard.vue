@@ -48,17 +48,21 @@ const props = defineProps({
 const emit = defineEmits(['select']);
 
 // Логика выбора
-const selectOption = (text) => {
+
+const tg = window.Telegram?.WebApp;
+let user = ref(null)
+const selectOption = (text, id) => {
   console.log('Выбран вариант:', text);
   emit('select', text);
 
-  
+  localStorage.setItem("answer", text);
+  sessionStorage("id", );
 };
 </script>
 
 <style scoped>
   @import url('https://fonts.googleapis.com/css2?family=Geologica:wght,CRSV@100..900,0&display=swap');
-/* Основной контейнер – тёмный градиент + лёгкая текстура */
+
 .card-container {
   background: linear-gradient(145deg, #2d376e 0%, #0c122f 100%);
   padding: 28px 24px 32px;
