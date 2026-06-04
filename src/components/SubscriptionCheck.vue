@@ -12,12 +12,12 @@
 
     <div class="options-list">
       <button class="option-button subscribe-btn" @click="openTelegramLink">
-        <span class="option-index">📱</span>
+        
         Подписаться
       </button>
       
       <button @click="checkSubscription" class="option-button check-btn" :disabled="checking">
-        <span class="option-index">✅</span>
+       
         {{ checking ? 'Проверяем...' : 'Проверить подписку' }}
       </button>
     </div>
@@ -33,7 +33,7 @@ import { supabase } from '../lib/supabase.js';
 
 const emit = defineEmits(['verified']);
 
-const CHANNEL_USERNAME = 'lildrughillarmy'; // без @
+const CHANNEL_USERNAME = 'lildrughillarmy'; 
 const CHANNEL_LINK = 'https://t.me/lildrughillarmy';
 
 const checking = ref(false);
@@ -145,7 +145,7 @@ async function checkSubscription() {
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Geologica:wght,CRSV@100..900,0&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 .card-container {
   background: linear-gradient(145deg, #2d376e 0%, #0c122f 100%);
   padding: 28px 24px 32px;
@@ -209,21 +209,23 @@ async function checkSubscription() {
 
 .subtitle {
   position: relative;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 17px;
+  font-weight: 700;
+  font-family: "Roboto", sans-serif;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: #8d9bee;
   margin: 0 0 28px 0;
   border-left: 3px solid #5d81e1;
-  padding-left: 12px;
+  padding-left: 10px;
 }
 
 .description {
   color: #b9cbff;
   margin-bottom: 28px;
   line-height: 1.5;
-  font-size: 15px;
+  font-size: 18px;
+  font-family: 'Roboto', sans-serif;
 }
 
 .options-list {
@@ -310,6 +312,7 @@ async function checkSubscription() {
   margin-top: 20px;
   font-size: 14px;
   text-align: center;
+  font-family: Georgia, 'Times New Roman', Times, serif;
 }
 
 .success-message {
@@ -317,6 +320,7 @@ async function checkSubscription() {
   margin-top: 20px;
   font-size: 14px;
   text-align: center;
+  font-family: Georgia, 'Times New Roman', Times, serif;
 }
 
 @media (max-width: 520px) {

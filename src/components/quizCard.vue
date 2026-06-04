@@ -64,9 +64,9 @@ const selectOption = (text, id) => {
 
 .card-container {
   background: linear-gradient(145deg, #2d376e 0%, #0c122f 100%);
-  padding: 28px 24px 32px;
+  padding: 25px 19px 27px;
   border-radius: 32px;
-  max-width: 500px;
+  max-width: 400px;
   width: 100%;
   margin: 0 auto;
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
@@ -145,7 +145,7 @@ const selectOption = (text, id) => {
 .options-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 9px;
 }
 
 /* Кнопки – глянцевые, с градиентом и тенью */

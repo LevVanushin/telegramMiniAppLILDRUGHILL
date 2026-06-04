@@ -1,24 +1,19 @@
 <template>
   <div class="container">
     <img src="./assets/mike.png" alt="" class="mike">
-    <button 
-      @click="clearStorage" 
-      style="position:fixed; bottom:20px; right:20px; z-index:9999; background:red; color:white; padding:15px; border-radius:50px; font-size:16px; border:none; box-shadow:0 4px 10px black;"
-    >
-      🗑️ Очистить
-    </button>
+   
     
-    <!-- Если проверка подписки не пройдена -->
+    <!-- Если проверка подписки не пройдена
     <SubscriptionCheck 
       v-if="!subscriptionVerified && !loading && data.length > 0"
       @verified="onSubscriptionVerified"
-    />
+    /> -->
 
     
     
     
     <!-- Если подписка подтверждена, показываем викторину -->
-    <template v-else>
+    <!-- <template v-else> -->
       <div v-if="loading" class="loading">Загрузка вопросов...</div>
       
       <!-- Если викторина уже пройдена - показываем результат -->
@@ -45,7 +40,7 @@
       
       <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
       <div v-else-if="!loading" class="error">Нет данных</div>
-    </template>
+    <!-- </template> -->
   </div>
   <div class="shadow"></div>
 </template>
@@ -225,8 +220,8 @@ onMounted(async () => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 50px;
-  padding: 15px;
+  gap: 30px;
+  padding: 0px 15px 0px 15px ;
 }
 
 .loading, .error {
@@ -250,7 +245,7 @@ onMounted(async () => {
 
 .mike {
   position: relative;
-  top: 20px;
+  top: 10px;
   width: 250px;
   height: 250px;
   transition-property: width, height, top;
@@ -279,9 +274,12 @@ onMounted(async () => {
   align-self: center;
 }
 
+@media (max-width){
+
+}
 @media(max-width: 330px) {
   .container {
-    padding: 30px;
+    padding: 5px;
   }
 }
 </style>
