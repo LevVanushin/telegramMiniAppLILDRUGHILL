@@ -1,12 +1,21 @@
 <template>
   <div class="container">
     <img src="./assets/mike.png" alt="" class="mike">
+    <button 
+      @click="clearStorage" 
+      style="position:fixed; bottom:20px; right:20px; z-index:9999; background:red; color:white; padding:15px; border-radius:50px; font-size:16px; border:none; box-shadow:0 4px 10px black;"
+    >
+      🗑️ Очистить
+    </button>
     
     <!-- Если проверка подписки не пройдена -->
     <SubscriptionCheck 
       v-if="!subscriptionVerified && !loading && data.length > 0"
       @verified="onSubscriptionVerified"
     />
+
+    
+    
     
     <!-- Если подписка подтверждена, показываем викторину -->
     <template v-else>
@@ -52,6 +61,11 @@ const loading = ref(true);
 const errorMessage = ref('');
 const subscriptionVerified = ref(false);
 
+function clearStorage() {
+  localStorage.clear();
+  alert('✅ Все данные очищены! Страница перезагрузится.');
+  window.location.reload();
+}
 // Состояние викторины
 const currentIndex = ref(0);
 const userAnswers = ref([]);
