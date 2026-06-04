@@ -7,7 +7,7 @@
     
     <div v-if="loading" class="loading">Загрузка вопросов...</div>
     <quizCard 
-      v-else-if="check"
+      v-else-if="data.length > 0"
       class="quiz" 
       :title="data[0].question_text"
       :options=[data[0].option_a,data[0].option_b,data[0].option_c,data[0].option_d]
@@ -43,6 +43,22 @@ function addLog(msg) {
   console.log(msg); // В браузере тоже покажет
 }
 
+function waitForTelegram() {
+  return new Promise((resolve) => {
+    let attempts = 0;
+    const check = setInterval(() => {
+      attempts++;
+      if (window.Telegram?.WebApp) {
+        clearInterval(check);
+        resolve(window.Telegram.WebApp);
+      } else if (attempts > 100) {
+        // 10 секунд прошло, Telegram не загрузился
+        clearInterval(check);
+        resolve(null);
+      }
+    }, 100);
+  });
+}
 
 async function getData() {
   try {
@@ -77,7 +93,7 @@ onMounted(async () => {
   
   addLog('App mounted');
   
-  const tg = window.Telegram?.WebApp;
+  const tg = await waitForTelegram();
   addLog(`Telegram: ${tg ? 'найден' : 'не найден'}`);
   
   if (tg?.initDataUnsafe?.user) {
