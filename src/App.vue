@@ -67,27 +67,27 @@ const score = computed(() => {
   return userAnswers.value.filter(a => a.isCorrect).length;
 });
 
-// function createSession() {
-//   const session = {
-//     id: crypto.randomUUID(),
-//     createdAt: Date.now(),
-//     expiresAt: Date.now() + (24 * 60 * 60 * 1000)
-//   };
-//   localStorage.setItem('session', JSON.stringify(session));
-//   return session;
-// }
+function createSession() {
+  const session = {
+    id: crypto.randomUUID(),
+    createdAt: Date.now(),
+    expiresAt: Date.now() + (24 * 60 * 60 * 1000)
+  };
+  localStorage.setItem('session', JSON.stringify(session));
+  return session;
+}
 
-// function getSession() {
-//   const raw = localStorage.getItem('session');
-//   if (!raw) return createSession();
+function getSession() {
+  const raw = localStorage.getItem('session');
+  if (!raw) return createSession();
   
-//   const session = JSON.parse(raw);
-//   if (Date.now() > session.expiresAt) {
-//     localStorage.removeItem('session');
-//     return createSession();
-//   }
-//   return session;
-// }
+  const session = JSON.parse(raw);
+  if (Date.now() > session.expiresAt) {
+    localStorage.removeItem('session');
+    return createSession();
+  }
+  return session;
+}
 
 // Сохранение прогресса викторины
 function saveQuizProgress() {
@@ -191,7 +191,7 @@ async function getData() {
     
     // После загрузки данных пробуем восстановить прогресс
     if (data.value.length > 0) {
-      // loadQuizProgress();
+      loadQuizProgress();
     }
     
   } catch (error) {
@@ -299,13 +299,13 @@ onMounted(async () => {
 
 @media (max-width: 430px){
   .results h2{
-  font-size: 20px;
+  font-size: 30px;
   font-weight: 700;
   font-family: "Geologica", sans-serif;  
 }
 
 .results p{
-  font-size: 10px;
+  font-size: 17px;
   margin-top: 10px;
   font-family: "Geologica", sans-serif;  
 }
