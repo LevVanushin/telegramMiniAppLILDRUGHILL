@@ -2,32 +2,41 @@
   <div class="container">
     <img src="./assets/mike.png" alt="" class="mike">
     
-    <div v-if="loading" class="loading">Загрузка вопросов...</div>
-    
-    <!-- Если викторина уже пройдена - показываем результат -->
-    <div v-else-if="quizCompleted" class="results">
-      <h2>Викторина уже пройдена!</h2>
-      <p>Ваш результат: {{ completedScore }} из {{ data.length }}</p>
-    </div>
-    
-    <!-- Показываем текущий вопрос -->
-    <quizCard 
-      v-else-if="data.length > 0 && !quizFinished"
-      class="quiz" 
-      :title="currentQuestion?.question_text"
-      :options="currentOptions"
-      :correctOption="currentQuestion?.correct_option" 
-      @select="handleAnswer"
+    <!-- Если проверка подписки не пройдена -->
+    <SubscriptionCheck 
+      v-if="!subscriptionVerified && !loading && data.length > 0"
+      @verified="onSubscriptionVerified"
     />
     
-    <!-- Результаты после прохождения -->
-    <div v-else-if="quizFinished" class="results">
-      <h2>Викторина завершена!</h2>
-      <p>Правильных ответов: {{ score }} из {{ data.length }}</p>
-    </div>
-    
-    <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
-    <div v-else-if="!loading" class="error">Нет данных</div>
+    <!-- Если подписка подтверждена, показываем викторину -->
+    <template v-else>
+      <div v-if="loading" class="loading">Загрузка вопросов...</div>
+      
+      <!-- Если викторина уже пройдена - показываем результат -->
+      <div v-else-if="quizCompleted" class="results">
+        <h2>Викторина уже пройдена!</h2>
+        <p>Ваш результат: {{ completedScore }} из {{ data.length }}</p>
+      </div>
+      
+      <!-- Показываем текущий вопрос -->
+      <quizCard 
+        v-else-if="data.length > 0 && !quizFinished"
+        class="quiz" 
+        :title="currentQuestion?.question_text"
+        :options="currentOptions"
+        :correctOption="currentQuestion?.correct_option" 
+        @select="handleAnswer"
+      />
+      
+      <!-- Результаты после прохождения -->
+      <div v-else-if="quizFinished" class="results">
+        <h2>Викторина завершена!</h2>
+        <p>Правильных ответов: {{ score }} из {{ data.length }}</p>
+      </div>
+      
+      <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
+      <div v-else-if="!loading" class="error">Нет данных</div>
+    </template>
   </div>
   <div class="shadow"></div>
 </template>
@@ -35,11 +44,13 @@
 <script setup>
 import { supabase } from "./lib/supabase.js";
 import quizCard from "./components/quizCard.vue";
+import SubscriptionCheck from "./components/SubscriptionCheck.vue";
 import { onMounted, ref, computed } from "vue";
 
 const data = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
+const subscriptionVerified = ref(false);
 
 // Состояние викторины
 const currentIndex = ref(0);
@@ -108,18 +119,15 @@ function loadQuizProgress() {
   if (saved) {
     const progress = JSON.parse(saved);
     
-    // Если викторина была пройдена
     if (progress.isCompleted) {
       quizCompleted.value = true;
       completedScore.value = progress.finalScore || 0;
       return true;
     }
     
-    // Если не пройдена - восстанавливаем прогресс
     currentIndex.value = progress.currentIndex;
     userAnswers.value = progress.answers;
     
-    // Проверяем, не закончена ли викторина
     if (currentIndex.value >= data.value.length && data.value.length > 0) {
       quizFinished.value = true;
       saveQuizProgress();
@@ -133,7 +141,6 @@ function loadQuizProgress() {
 function handleAnswer(selectedText) {
   if (!currentQuestion.value) return;
   
-  // Определяем букву ответа
   const optionMap = {
     [currentQuestion.value.option_a]: 'A',
     [currentQuestion.value.option_b]: 'B',
@@ -144,7 +151,6 @@ function handleAnswer(selectedText) {
   const selectedLetter = optionMap[selectedText];
   const isCorrect = (selectedLetter === currentQuestion.value.correct_option);
   
-  // Сохраняем ответ
   userAnswers.value.push({
     questionId: currentQuestion.value.id,
     questionText: currentQuestion.value.question_text,
@@ -153,25 +159,13 @@ function handleAnswer(selectedText) {
     timestamp: Date.now()
   });
   
-  // Переход к следующему вопросу
   if (currentIndex.value + 1 < data.value.length) {
     currentIndex.value++;
     saveQuizProgress();
   } else {
-    // Викторина завершена
     quizFinished.value = true;
     saveQuizProgress();
   }
-}
-
-// Перезапуск викторины (только внутренний, без кнопки)
-function restartQuiz() {
-  currentIndex.value = 0;
-  userAnswers.value = [];
-  quizFinished.value = false;
-  quizCompleted.value = false;
-  completedScore.value = 0;
-  localStorage.removeItem('quiz_progress');
 }
 
 async function getData() {
@@ -189,7 +183,6 @@ async function getData() {
   
     data.value = response.data || [];
     
-    // После загрузки данных пробуем восстановить прогресс
     if (data.value.length > 0) {
       loadQuizProgress();
     }
@@ -200,10 +193,14 @@ async function getData() {
   } finally {
     loading.value = false;
   }
-} 
+}
+
+function onSubscriptionVerified() {
+  subscriptionVerified.value = true;
+}
 
 onMounted(async () => {
-  // getSession();
+  getSession();
   await getData();
 });
 </script>
@@ -218,15 +215,10 @@ onMounted(async () => {
   padding: 15px;
 }
 
-
-
-.loading, .error, .debug {
+.loading, .error {
   text-align: center;
   padding: 20px;
-  font-family: Georgia, 'Times New Roman', Times, serif;
-  font-size: 30px;
-  font-weight: 600;
-  color: rgb(19, 37, 54);
+  font-size: 18px;
 }
 
 .error {
@@ -242,30 +234,6 @@ onMounted(async () => {
   max-width: 500px;
 }
 
-.results h2{
-  font-size: 40px;
-  font-weight: 700;
-  font-family: "Geologica", sans-serif;  
-}
-
-.results p{
-  font-size: 20px;
-  margin-top: 10px;
-  font-family: "Geologica", sans-serif;  
-}
-
-.results button {
-  margin-top: 20px;
-  background: #5d81e1;
-  border: none;
-  border-radius: 16px;
-  padding: 12px 24px;
-  color: white;
-  cursor: pointer;
-  font-size: 20px;
-  font-weight: 600;
-  font-family: "Geologica", sans-serif;  
-}
 .mike {
   position: relative;
   top: 20px;
@@ -297,17 +265,9 @@ onMounted(async () => {
   align-self: center;
 }
 
-@media (max-width: 430px){
-  .results h2{
-  font-size: 30px;
-  font-weight: 700;
-  font-family: "Geologica", sans-serif;  
-}
-
-.results p{
-  font-size: 17px;
-  margin-top: 10px;
-  font-family: "Geologica", sans-serif;  
-}
+@media(max-width: 330px) {
+  .container {
+    padding: 30px;
+  }
 }
 </style>
