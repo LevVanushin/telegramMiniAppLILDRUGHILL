@@ -116,7 +116,7 @@ const selectOption = (text, id) => {
 
 /* Заголовок – крупный, с лёгким градиентом текста */
 .main-title {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 800;
   font-family: "Geologica", sans-serif;  
   line-height: 1.25;
@@ -241,6 +241,12 @@ const selectOption = (text, id) => {
   .army-signature {
     font-size: 12px;
     margin-bottom: 12px;
+  }
+}
+
+@media (max-width: 400px){
+  .main-title{
+    font-size: 18px;
   }
 }
 </style>

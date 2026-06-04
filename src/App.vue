@@ -218,10 +218,15 @@ onMounted(async () => {
   padding: 15px;
 }
 
+
+
 .loading, .error, .debug {
   text-align: center;
   padding: 20px;
-  font-size: 18px;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 30px;
+  font-weight: 600;
+  color: rgb(19, 37, 54);
 }
 
 .error {
@@ -290,12 +295,6 @@ onMounted(async () => {
 
 .quiz {
   align-self: center;
-}
-
-@media(max-width: 330px) {
-  .container {
-    padding: 30px;
-  }
 }
 
 @media (max-width: 430px){
