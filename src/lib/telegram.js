@@ -34,7 +34,19 @@ bot.start((ctx) => {
   const userId = ctx.from.id;
   const appUrl = `https://telegram-mini-app-lildrughill-x5j8.vercel.app?user_id=${userId}`;
   
-  ctx.reply('Нажми кнопку:', {
+  ctx.reply(`ЕГЭ по реперу LILDRUGHILL 
+
+Состоит из 2 частей: 
+
+• 1 часть: 16 тестовых вопросов. 
+
+• 2 часть: письменная часть, ответ на вопрос. Объем ответа не важен.
+
+Проверяться будет в ручную. 
+
+Обязательным условием прохождения экзамена является подписка на наш телеграмм!
+
+Удачи!`, {
     reply_markup: {
       inline_keyboard: [[
         { text: '🎮 Открыть викторину', web_app: { url: appUrl } }

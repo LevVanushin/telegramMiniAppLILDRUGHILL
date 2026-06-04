@@ -82,7 +82,7 @@ function createSession() {
   const session = {
     id: crypto.randomUUID(),
     createdAt: Date.now(),
-    expiresAt: Date.now() + (24 * 60 * 60 * 1000)
+    expiresAt: Date.now() + 60000
   };
   localStorage.setItem('session', JSON.stringify(session));
   return session;
