@@ -48,7 +48,6 @@
 <script setup>
 import { supabase } from "./lib/supabase.js";
 import quizCard from "./components/quizCard.vue";
-import SubscriptionCheck from "./components/SubscriptionCheck.vue";
 import { onMounted, ref, computed } from "vue";
 
 const data = ref([]);
@@ -56,11 +55,6 @@ const loading = ref(true);
 const errorMessage = ref('');
 const subscriptionVerified = ref(false);
 
-function clearStorage() {
-  localStorage.clear();
-  alert('✅ Все данные очищены! Страница перезагрузится.');
-  window.location.reload();
-}
 // Состояние викторины
 const currentIndex = ref(0);
 const userAnswers = ref([]);
@@ -87,63 +81,70 @@ const score = computed(() => {
   return userAnswers.value.filter(a => a.isCorrect).length;
 });
 
+// Функции сессии (объединены с прогрессом)
 function createSession() {
   const session = {
     id: crypto.randomUUID(),
     createdAt: Date.now(),
-    expiresAt: Date.now() + 60000
+    expiresAt: Date.now() + (30 * 60000), // 60 секунд
+    quizProgress: {
+      currentIndex: 0,
+      answers: [],
+      isCompleted: false,
+      finalScore: 0
+    }
   };
-  localStorage.setItem('session', JSON.stringify(session));
+  localStorage.setItem('quiz_session', JSON.stringify(session));
   return session;
 }
 
 function getSession() {
-  const raw = localStorage.getItem('session');
+  const raw = localStorage.getItem('quiz_session');
   if (!raw) return createSession();
   
   const session = JSON.parse(raw);
+  
+  // Проверяем истекла ли сессия
   if (Date.now() > session.expiresAt) {
-    localStorage.removeItem('session');
+    console.log('⏰ Сессия истекла, данные очищены');
+    localStorage.removeItem('quiz_session');
     return createSession();
   }
+  
   return session;
 }
 
-// Сохранение прогресса викторины
+// Сохранение прогресса (в сессию)
 function saveQuizProgress() {
-  const progress = {
+  const session = getSession();
+  session.quizProgress = {
     currentIndex: currentIndex.value,
     answers: userAnswers.value,
     isCompleted: quizFinished.value,
-    completedAt: quizFinished.value ? Date.now() : null,
     finalScore: score.value,
     savedAt: Date.now()
   };
-  localStorage.setItem('quiz_progress', JSON.stringify(progress));
+  localStorage.setItem('quiz_session', JSON.stringify(session));
 }
 
-// Загрузка прогресса викторины
+// Загрузка прогресса (из сессии)
 function loadQuizProgress() {
-  const saved = localStorage.getItem('quiz_progress');
-  if (saved) {
-    const progress = JSON.parse(saved);
-    
-    if (progress.isCompleted) {
-      quizCompleted.value = true;
-      completedScore.value = progress.finalScore || 0;
-      return true;
-    }
-    
-    currentIndex.value = progress.currentIndex;
-    userAnswers.value = progress.answers;
-    
-    if (currentIndex.value >= data.value.length && data.value.length > 0) {
-      quizFinished.value = true;
-      saveQuizProgress();
-    }
+  const session = getSession();
+  const progress = session.quizProgress;
+  
+  if (progress.isCompleted) {
+    quizCompleted.value = true;
+    completedScore.value = progress.finalScore || 0;
     return true;
   }
-  return false;
+  
+  currentIndex.value = progress.currentIndex;
+  userAnswers.value = progress.answers;
+  
+  if (currentIndex.value >= data.value.length && data.value.length > 0) {
+    quizFinished.value = true;
+  }
+  return true;
 }
 
 // Обработчик выбора ответа
@@ -206,6 +207,12 @@ async function getData() {
 
 function onSubscriptionVerified() {
   subscriptionVerified.value = true;
+}
+
+function clearStorage() {
+  localStorage.removeItem('quiz_session');
+  alert('✅ Сессия очищена! Страница перезагрузится.');
+  window.location.reload();
 }
 
 onMounted(async () => {
