@@ -32,10 +32,9 @@ const bot = new Telegraf(data.botToken);
 
 bot.start((ctx) => {
   const userId = ctx.from.id;
-  // Замени URL на свой
   const appUrl = `https://telegram-mini-app-lildrughill-x5j8.vercel.app?user_id=${userId}`;
   
-  ctx.reply(`Привет, ${ctx.from.first_name}! Подпишись на канал и проходи викторину.`, {
+  ctx.reply('Нажми кнопку:', {
     reply_markup: {
       inline_keyboard: [[
         { text: '🎮 Открыть викторину', web_app: { url: appUrl } }

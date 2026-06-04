@@ -33,42 +33,43 @@ import { supabase } from '../lib/supabase.js';
 
 const emit = defineEmits(['verified']);
 
-const CHANNEL_USERNAME = '@lildrughillarmy';
-const CHANNEL_LINK = 'https://t.me/lildrughillarmy';
-
-let BOT_TOKEN = '';
+const CHANNEL_USERNAME = 'lildrughill'; // без @
+const CHANNEL_LINK = 'https://t.me/lildrughill';
 
 const checking = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
-const tokenLoaded = ref(false);
+const botToken = ref('');
 
-// Функция получения user_id
-function getUserId() {
-  // Из URL параметров
+// Загрузка токена при монтировании
+onMounted(async () => {
+  const { data } = await supabase
+    .from('telegramData')
+    .select('botToken')
+    .single();
+  
+  if (data?.botToken) {
+    botToken.value = data.botToken;
+  } else {
+    errorMessage.value = 'Ошибка: токен не загружен';
+  }
+  
+  // Проверяем сохранённую верификацию
+  const saved = localStorage.getItem('subscription_verified');
+  const savedUserId = localStorage.getItem('subscription_user_id');
+  const savedTime = localStorage.getItem('subscription_verified_at');
+  
+  // Получаем текущего пользователя из URL
   const urlParams = new URLSearchParams(window.location.search);
-  const urlUserId = urlParams.get('user_id');
-  if (urlUserId) {
-    localStorage.setItem('user_id', urlUserId);
-    return urlUserId;
-  }
+  const userId = urlParams.get('user_id');
   
-  // Из localStorage
-  const savedUserId = localStorage.getItem('user_id');
-  if (savedUserId) {
-    return savedUserId;
+  if (saved === 'true' && savedUserId && userId && savedUserId === userId) {
+    const hoursPassed = (Date.now() - (parseInt(savedTime) || 0)) / (1000 * 60 * 60);
+    if (hoursPassed < 24) {
+      emit('verified');
+    }
   }
-  
-  // Из Telegram WebApp
-  const tg = window.Telegram?.WebApp;
-  const tgUserId = tg?.initDataUnsafe?.user?.id;
-  if (tgUserId) {
-    localStorage.setItem('user_id', tgUserId);
-    return tgUserId;
-  }
-  
-  return null;
-}
+});
 
 function openTelegramLink() {
   const tg = window.Telegram?.WebApp;
@@ -79,27 +80,9 @@ function openTelegramLink() {
   }
 }
 
-async function loadBotToken() {
-  try {
-    const { data, error } = await supabase
-      .from('telegramData')
-      .select('botToken')
-      .single();
-    
-    if (error) throw error;
-    
-    if (data && data.botToken) {
-      BOT_TOKEN = data.botToken;
-      tokenLoaded.value = true;
-    }
-  } catch (error) {
-    errorMessage.value = 'Ошибка загрузки токена';
-  }
-}
-
 async function checkSubscription() {
-  if (!tokenLoaded.value) {
-    errorMessage.value = 'Загрузка... Попробуйте через секунду';
+  if (!botToken.value) {
+    errorMessage.value = 'Токен не загружен, попробуйте через секунду';
     return;
   }
   
@@ -107,16 +90,27 @@ async function checkSubscription() {
   errorMessage.value = '';
   successMessage.value = '';
   
-  const userId = getUserId();
+  // Получаем user_id из URL
+  const urlParams = new URLSearchParams(window.location.search);
+  let userId = urlParams.get('user_id');
+  
+  // Если нет в URL, пробуем из localStorage
+  if (!userId) {
+    userId = localStorage.getItem('user_id');
+  }
   
   if (!userId) {
-    errorMessage.value = 'Не удалось определить пользователя. Нажмите /start в боте и откройте заново.';
+    errorMessage.value = 'Не удалось определить пользователя. Перезапустите бота командой /start';
     checking.value = false;
     return;
   }
   
+  // Сохраняем для будущего
+  localStorage.setItem('user_id', userId);
+  
   try {
-    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember`, {
+    // Проверяем подписку через API бота
+    const response = await fetch(`https://api.telegram.org/bot${botToken.value}/getChatMember`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -130,42 +124,23 @@ async function checkSubscription() {
     if (data.ok && data.result) {
       const status = data.result.status;
       if (status === 'creator' || status === 'administrator' || status === 'member' || status === 'restricted') {
-        successMessage.value = '✅ Подписка подтверждена!';
+        successMessage.value = '✅ Подписка подтверждена! Перенаправляем...';
         localStorage.setItem('subscription_verified', 'true');
         localStorage.setItem('subscription_user_id', userId);
         localStorage.setItem('subscription_verified_at', Date.now());
         setTimeout(() => emit('verified'), 1500);
       } else {
-        errorMessage.value = '❌ Вы не подписаны на канал';
+        errorMessage.value = '❌ Вы не подписаны на канал. Подпишитесь и нажмите "Проверить подписку"';
       }
     } else {
-      errorMessage.value = 'Ошибка проверки';
+      errorMessage.value = `Ошибка: ${data.description || 'Не удалось проверить'}`;
     }
   } catch (error) {
-    errorMessage.value = 'Не удалось проверить подписку';
+    errorMessage.value = 'Ошибка соединения. Попробуйте позже.';
   } finally {
     checking.value = false;
   }
 }
-
-function checkSavedVerification() {
-  const saved = localStorage.getItem('subscription_verified');
-  const savedUserId = localStorage.getItem('subscription_user_id');
-  const savedTime = localStorage.getItem('subscription_verified_at');
-  const currentUserId = getUserId();
-  
-  if (saved === 'true' && savedUserId && currentUserId && savedUserId == currentUserId) {
-    const hoursPassed = (Date.now() - (parseInt(savedTime) || 0)) / (1000 * 60 * 60);
-    if (hoursPassed < 24) {
-      emit('verified');
-    }
-  }
-}
-
-onMounted(async () => {
-  await loadBotToken();
-  checkSavedVerification();
-});
 </script>
 
 <style scoped>
