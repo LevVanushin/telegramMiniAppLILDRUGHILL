@@ -1,24 +1,21 @@
 <template>
   <div class="card-container">
-    <!-- Новая курсивная надпись -->
     <div class="army-signature">
       <p class="army">lildrughill army</p>
       <p class="mikeCaption">MIKE</p>
     </div>
 
-    <!-- Заголовок (передается через props) -->
     <h1 class="main-title">{{ title }}</h1>
-
-    <!-- Подзаголовок -->
     <p class="subtitle">выбери один вариант</p>
 
-    <!-- Список вариантов (передается через props) -->
     <div class="options-list">
       <button 
         v-for="(option, index) in options" 
         :key="index"
         class="option-button"
-        @click="selectOption(option)"
+        @click.prevent="selectOption(option)"
+        @animationend="removeActiveClass"
+        :data-active="false"
       >
         <span class="option-index">{{ String.fromCharCode(65 + index) }}</span>
         {{ option }}
@@ -28,9 +25,8 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue';
-import { ref } from 'vue';
-// Определяем входящие параметры
+import { ref, watch } from 'vue';
+
 const props = defineProps({
   title: {
     type: String,
@@ -44,23 +40,34 @@ const props = defineProps({
   }
 });
 
-// Определяем события
 const emit = defineEmits(['select']);
 
-// Логика выбора
+// Отслеживаем смену вопроса и убираем активное состояние с кнопок
+watch(() => props.title, () => {
+  // Небольшая задержка для сброса анимации
+  setTimeout(() => {
+    const buttons = document.querySelectorAll('.option-button');
+    buttons.forEach(btn => {
+      btn.style.transform = '';
+      btn.style.boxShadow = '';
+    });
+  }, 50);
+});
 
-const tg = window.Telegram?.WebApp;
-let user = ref(null)
-const selectOption = (text, id) => {
+const selectOption = (text) => {
   console.log('Выбран вариант:', text);
   emit('select', text);
-
   localStorage.setItem("answer", text);
+};
+
+const removeActiveClass = (event) => {
+  event.target.style.transform = '';
+  event.target.style.boxShadow = '';
 };
 </script>
 
 <style scoped>
-  @import url('https://fonts.googleapis.com/css2?family=Geologica:wght,CRSV@100..900,0&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geologica:wght,CRSV@100..900,0&display=swap');
 
 .card-container {
   background: linear-gradient(145deg, #2d376e 0%, #0c122f 100%);
@@ -74,14 +81,12 @@ const selectOption = (text, id) => {
   color: #ffffff;
   box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   transition: transform 0.2s ease;
-  
 }
 
 .card-container:hover {
   transform: translateY(-3px);
 }
 
-/* Новая курсивная подпись */
 .army-signature {
   position: relative;
   width: 100%;
@@ -99,26 +104,25 @@ const selectOption = (text, id) => {
   letter-spacing: 2px;
 }
 
-.army{
+.army {
   font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif;
   font-style: italic;
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.5px;
 }
+
 .army, .mikeCaption {
   position: relative;
-  
   color: #b9cbff;
   opacity: 0.8;
   width: 100%;
 }
 
-/* Заголовок – крупный, с лёгким градиентом текста */
 .main-title {
   font-size: 24px;
   font-weight: 800;
-  font-family: "Geologica", sans-serif;  
+  font-family: "Geologica", sans-serif;
   line-height: 1.25;
   letter-spacing: 2px;
   margin: 0 0 12px 0;
@@ -128,7 +132,6 @@ const selectOption = (text, id) => {
   color: white;
 }
 
-/* Подзаголовок */
 .subtitle {
   position: relative;
   font-size: 13px;
@@ -141,17 +144,14 @@ const selectOption = (text, id) => {
   padding-left: 12px;
 }
 
-/* Список кнопок */
 .options-list {
   display: flex;
   flex-direction: column;
   gap: 9px;
 }
 
-/* Кнопки – глянцевые, с градиентом и тенью */
 .option-button {
   position: relative;
-
   background: linear-gradient(105deg, #1e2a5e 0%, #172147 100%);
   border: none;
   border-radius: 20px;
@@ -169,7 +169,6 @@ const selectOption = (text, id) => {
   overflow: hidden;
 }
 
-/* Буква-индекс (A, B, C, D) */
 .option-index {
   background: rgba(255, 255, 255, 0.12);
   width: 32px;
@@ -184,7 +183,6 @@ const selectOption = (text, id) => {
   transition: 0.2s;
 }
 
-/* Эффект наведения */
 .option-button:hover {
   background: linear-gradient(105deg, #2a3b7c 0%, #1f2a5a 100%);
   transform: translateY(-2px);
@@ -197,14 +195,12 @@ const selectOption = (text, id) => {
   transform: scale(1.02);
 }
 
-/* Эффект нажатия */
 .option-button:active {
-  transform: translateY(4px);
-  box-shadow: 0 2px 0 #0b0f24;
-  transition: 0.05s;
+  transform: translateY(4px) !important;
+  box-shadow: 0 2px 0 #0b0f24 !important;
+  transition: 0.05s !important;
 }
 
-/* Эффект скользящей волны */
 .option-button::after {
   content: '';
   position: absolute;
@@ -220,7 +216,6 @@ const selectOption = (text, id) => {
   left: 100%;
 }
 
-/* Адаптив */
 @media (max-width: 520px) {
   .card-container {
     padding: 20px 18px 24px;
@@ -244,8 +239,8 @@ const selectOption = (text, id) => {
   }
 }
 
-@media (max-width: 400px){
-  .main-title{
+@media (max-width: 400px) {
+  .main-title {
     font-size: 18px;
   }
 }
