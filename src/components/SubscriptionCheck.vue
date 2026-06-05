@@ -30,7 +30,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { supabase } from '../lib/supabase.js';
-
+import { defineProps, defineEmits } from 'vue';
 const emit = defineEmits(['verified']);
 
 const CHANNEL_USERNAME = 'lildrughillarmy'; 

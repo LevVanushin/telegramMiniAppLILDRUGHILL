@@ -1,25 +1,27 @@
 <template>
   <div class="container">
     <img src="./assets/mike.png" alt="" class="mike">
+   
     
-    <!-- 1. СНАЧАЛА: загрузка -->
-    <div v-if="loading" class="loading">Загрузка вопросов...</div>
-    
-    <!-- 2. ПОТОМ: проверка подписки (только если данные загружены) -->
     <SubscriptionCheck 
-      v-else-if="!subscriptionVerified && data.length > 0"
+      v-if="!subscriptionVerified && data.length > 0"
       @verified="onSubscriptionVerified"
     />
 
-    <!-- 3. ПОТОМ: викторина (только если подписка подтверждена) -->
-    <template v-else-if="subscriptionVerified && data.length > 0">
-      <div v-if="quizCompleted" class="results">
+    
+    <!-- Если подписка подтверждена, показываем викторину -->
+    <template v-else>
+      <div v-if="loading" class="loading">Загрузка вопросов...</div>
+      
+      <!-- Если викторина уже пройдена - показываем результат -->
+      <div v-else-if="quizCompleted" class="results">
         <h2>Викторина уже пройдена!</h2>
         <p>Ваш результат: {{ completedScore }} из {{ data.length }}</p>
       </div>
       
+      <!-- Показываем текущий вопрос -->
       <quizCard 
-        v-else-if="!quizFinished"
+        v-else-if="data.length > 0 && !quizFinished"
         class="quiz" 
         :title="currentQuestion?.question_text"
         :options="currentOptions"
@@ -27,15 +29,15 @@
         @select="handleAnswer"
       />
       
+      <!-- Результаты после прохождения -->
       <div v-else-if="quizFinished" class="results">
         <h2>Викторина завершена!</h2>
         <p>Ваш балл: {{ score * 5 }} из {{ data.length * 5 }}</p>
       </div>
+      
+      <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
+      <div v-else-if="!loading" class="error">Нет данных</div>
     </template>
-    
-    <!-- 4. ВСЕ ОСТАЛЬНОЕ: ошибки -->
-    <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
-    <div v-else-if="!loading && data.length === 0" class="error">Нет данных</div>
   </div>
   <div class="shadow"></div>
 </template>
@@ -44,6 +46,8 @@
 import { supabase } from "./lib/supabase.js";
 import quizCard from "./components/quizCard.vue";
 import { onMounted, ref, computed } from "vue";
+import SubscriptionCheck from "./components/SubscriptionCheck.vue";
+import { defineProps, defineEmits } from 'vue';
 
 const data = ref([]);
 const loading = ref(true);
@@ -211,8 +215,9 @@ function clearStorage() {
 }
 
 onMounted(async () => {
-  getSession();
   await getData();
+
+  getSession();
 });
 </script>
 
