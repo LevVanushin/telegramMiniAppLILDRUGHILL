@@ -3,17 +3,16 @@
     <img src="./assets/mike.png" alt="" class="mike">
    
     
-    <!-- Если проверка подписки не пройдена
     <SubscriptionCheck 
       v-if="!subscriptionVerified && !loading && data.length > 0"
       @verified="onSubscriptionVerified"
-    /> -->
+    />
 
     
     
     
     <!-- Если подписка подтверждена, показываем викторину -->
-    <!-- <template v-else> -->
+    <template v-else>
       <div v-if="loading" class="loading">Загрузка вопросов...</div>
       
       <!-- Если викторина уже пройдена - показываем результат -->
@@ -40,7 +39,7 @@
       
       <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
       <div v-else-if="!loading" class="error">Нет данных</div>
-    <!-- </template> -->
+    </template>
   </div>
   <div class="shadow"></div>
 </template>
