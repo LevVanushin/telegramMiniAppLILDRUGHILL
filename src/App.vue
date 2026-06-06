@@ -17,7 +17,7 @@
       <!-- Если викторина уже пройдена - показываем результат -->
       <div v-else-if="quizCompleted" class="results">
         <h2>Викторина уже пройдена!</h2>
-        <p>Ваш результат: {{ completedScore }} из {{ data.length }}</p>
+        <p>Ваш результат: {{ completedScore * 5 }} из {{ data.length * 5}}</p>
       </div>
       
       <!-- Показываем текущий вопрос -->
