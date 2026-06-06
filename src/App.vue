@@ -45,7 +45,8 @@ import SubscriptionCheck from "./components/SubscriptionCheck.vue";
 import { onMounted, ref, computed } from "vue";
 
 // ====== Конфигурация ======
-const SYNC_TIMEOUT = 30000; // 30 секунд таймаут на запрос к Supabase
+const SYNC_TIMEOUT = 30000;
+const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
 
 // ====== Реактивные данные ======
 const data = ref([]);
@@ -53,7 +54,6 @@ const loading = ref(true);
 const errorMessage = ref('');
 const subscriptionVerified = ref(false);
 
-// Состояние викторины
 const currentIndex = ref(0);
 const userAnswers = ref([]);
 const quizFinished = ref(false);
@@ -73,8 +73,7 @@ const currentOptions = computed(() => {
 });
 const score = computed(() => userAnswers.value.filter(a => a.isCorrect).length);
 
-// ====== Работа с сессией (localStorage + Supabase) ======
-
+// ====== Вспомогательные функции ======
 function getTelegramId() {
   const urlParams = new URLSearchParams(window.location.search);
   let id = urlParams.get('user_id');
@@ -86,11 +85,12 @@ function getTelegramId() {
   return saved ? parseInt(saved) : null;
 }
 
+// Создание новой сессии
 function createSession() {
   const session = {
     id: crypto.randomUUID(),
     createdAt: Date.now(),
-    expiresAt: Date.now() + (30 * 60000),
+    expiresAt: Date.now() + SESSION_TTL,
     quizProgress: {
       currentIndex: 0,
       answers: [],
@@ -103,26 +103,72 @@ function createSession() {
   return session;
 }
 
+// Получение сессии из localStorage без удаления
 function getLocalSession() {
   const raw = localStorage.getItem('quiz_session');
   if (!raw) return null;
   const session = JSON.parse(raw);
-  if (Date.now() > session.expiresAt) {
-    localStorage.removeItem('quiz_session');
-    return null;
-  }
+  // не удаляем по истечению, а просто помечаем
   return session;
 }
 
+// Применение данных сессии к состоянию викторины (восстанавливаем и счёт!)
+function loadProgressFromSession(session) {
+  const progress = session.quizProgress;
+  
+  // Восстанавливаем ответы
+  userAnswers.value = progress.answers || [];
+  currentIndex.value = progress.currentIndex || 0;
+  
+  // ВАЖНО: восстанавливаем счёт завершённой викторины
+  if (progress.isCompleted) {
+    quizCompleted.value = true;
+    completedScore.value = progress.finalScore || 0;
+    quizFinished.value = false;
+  } else {
+    quizCompleted.value = false;
+    completedScore.value = 0;
+    if (currentIndex.value >= data.value.length && data.value.length > 0) {
+      quizFinished.value = true;
+    } else {
+      quizFinished.value = false;
+    }
+  }
+  // Принудительно пересчитываем баллы из ответов (на случай, если finalScore устарел)
+  if (!quizCompleted.value && userAnswers.value.length > 0) {
+    const correctCount = userAnswers.value.filter(a => a.isCorrect).length;
+    if (correctCount !== progress.finalScore) {
+      progress.finalScore = correctCount;
+      session.quizProgress = progress;
+      localStorage.setItem('quiz_session', JSON.stringify(session));
+    }
+  }
+  console.log(`📊 Загружено: ответов ${userAnswers.value.length}, правильных ${score.value}, завершена: ${quizCompleted.value}`);
+}
+
+// Сохранение прогресса в localStorage и фоновая синхронизация
+function saveQuizProgress() {
+  const session = getLocalSession();
+  if (!session) return;
+  session.quizProgress = {
+    currentIndex: currentIndex.value,
+    answers: userAnswers.value,
+    isCompleted: quizFinished.value || quizCompleted.value,
+    finalScore: score.value,
+    savedAt: Date.now()
+  };
+  session.expiresAt = Date.now() + SESSION_TTL;
+  localStorage.setItem('quiz_session', JSON.stringify(session));
+  // Фоновая синхронизация с Supabase
+  syncSessionToSupabase().catch(e => console.warn(e));
+}
+
+// Отправка в Supabase
 async function syncSessionToSupabase() {
   const session = getLocalSession();
   if (!session) return;
-
   const telegramId = getTelegramId();
-  if (!telegramId) {
-    console.warn('Нет telegram_id, синхронизация с Supabase невозможна');
-    return;
-  }
+  if (!telegramId) return;
 
   session.quizProgress = {
     currentIndex: currentIndex.value,
@@ -138,7 +184,7 @@ async function syncSessionToSupabase() {
       telegram_id: telegramId,
       session_id: session.id,
       created_at: new Date(session.createdAt).toISOString(),
-      expires_at: new Date(session.expiresAt).toISOString(),
+      expires_at: new Date(Date.now() + SESSION_TTL).toISOString(),
       quiz_progress: session.quizProgress,
       total_score: score.value,
       subscription_verified: localStorage.getItem('subscription_verified') === 'true',
@@ -147,19 +193,18 @@ async function syncSessionToSupabase() {
         : null,
       last_active: new Date().toISOString()
     }, { onConflict: 'telegram_id' });
-    console.log('✅ Сессия синхронизирована с Supabase');
   } catch (err) {
     console.warn('Ошибка синхронизации с Supabase:', err);
   }
 }
 
+// Загрузка сессии: сначала Supabase с таймаутом, потом localStorage
 async function loadSessionFromSupabase() {
   const telegramId = getTelegramId();
   if (!telegramId) {
-    // Нет Telegram ID, используем только localStorage
-    const localSession = getLocalSession();
-    if (localSession) {
-      loadProgressFromSession(localSession);
+    const local = getLocalSession();
+    if (local) {
+      loadProgressFromSession(local);
     } else {
       createSession();
     }
@@ -177,73 +222,46 @@ async function loadSessionFromSupabase() {
     .eq('telegram_id', telegramId)
     .maybeSingle();
 
+  let supabaseData = null;
   try {
     const response = await Promise.race([fetchPromise, timeoutPromise]);
     clearTimeout(timeoutId);
-
-    if (response.error) throw response.error;
-
-    // Если данные есть в Supabase
-    if (response.data && response.data.quiz_progress && Object.keys(response.data.quiz_progress).length > 0) {
-      const supabaseSession = response.data;
-      const session = {
-        id: supabaseSession.session_id,
-        createdAt: new Date(supabaseSession.created_at).getTime(),
-        expiresAt: new Date(supabaseSession.expires_at).getTime(),
-        quizProgress: supabaseSession.quiz_progress
-      };
-      localStorage.setItem('quiz_session', JSON.stringify(session));
-      if (supabaseSession.subscription_verified) {
-        localStorage.setItem('subscription_verified', 'true');
-        localStorage.setItem('subscription_user_id', telegramId);
-        localStorage.setItem('subscription_verified_at', new Date(supabaseSession.subscription_verified_at).getTime());
-      }
-      loadProgressFromSession(session);
-      console.log('✅ Данные загружены из Supabase');
-      return;
+    if (!response.error && response.data) {
+      supabaseData = response.data;
     }
   } catch (err) {
     clearTimeout(timeoutId);
-    console.warn('Не удалось загрузить сессию из Supabase (таймаут или ошибка):', err);
+    console.warn('Supabase timeout/error, используем localStorage');
   }
 
-  // Если данных в Supabase нет (response.data === null) или ошибка — пробуем localStorage
+  if (supabaseData && supabaseData.quiz_progress) {
+    const session = {
+      id: supabaseData.session_id,
+      createdAt: new Date(supabaseData.created_at).getTime(),
+      expiresAt: new Date(supabaseData.expires_at).getTime(),
+      quizProgress: supabaseData.quiz_progress
+    };
+    localStorage.setItem('quiz_session', JSON.stringify(session));
+    if (supabaseData.subscription_verified) {
+      localStorage.setItem('subscription_verified', 'true');
+      localStorage.setItem('subscription_user_id', telegramId);
+      localStorage.setItem('subscription_verified_at', new Date(supabaseData.subscription_verified_at).getTime());
+    }
+    loadProgressFromSession(session);
+    console.log('✅ Данные загружены из Supabase');
+    return;
+  }
+
+  // Fallback на localStorage
   const localSession = getLocalSession();
   if (localSession) {
     loadProgressFromSession(localSession);
-    console.log('⚠️ Данные загружены из localStorage (fallback)');
+    console.log('⚠️ Использованы данные из localStorage (fallback)');
+    // При первой возможности синхронизируем
+    syncSessionToSupabase().catch(e => console.warn(e));
   } else {
     createSession();
-    console.log('🆕 Новая сессия создана');
   }
-}
-
-function loadProgressFromSession(session) {
-  const progress = session.quizProgress;
-  if (progress.isCompleted) {
-    quizCompleted.value = true;
-    completedScore.value = progress.finalScore || 0;
-  } else {
-    currentIndex.value = progress.currentIndex || 0;
-    userAnswers.value = progress.answers || [];
-    if (currentIndex.value >= data.value.length && data.value.length > 0) {
-      quizFinished.value = true;
-    }
-  }
-}
-
-function saveQuizProgress() {
-  const session = getLocalSession();
-  if (!session) return;
-  session.quizProgress = {
-    currentIndex: currentIndex.value,
-    answers: userAnswers.value,
-    isCompleted: quizFinished.value || quizCompleted.value,
-    finalScore: score.value,
-    savedAt: Date.now()
-  };
-  localStorage.setItem('quiz_session', JSON.stringify(session));
-  syncSessionToSupabase().catch(e => console.warn(e));
 }
 
 // ====== Логика викторины ======
@@ -277,6 +295,7 @@ function handleAnswer(selectedText) {
   }
 }
 
+// ====== Загрузка вопросов ======
 async function getData() {
   try {
     loading.value = true;
@@ -290,20 +309,16 @@ async function getData() {
     
     if (data.value.length > 0) {
       await loadSessionFromSupabase();
-    } else {
-      // если нет вопросов, всё равно завершаем загрузку
-      loading.value = false;
     }
   } catch (err) {
     console.error(err);
     errorMessage.value = err.message;
-    loading.value = false;
   } finally {
-    // убираем лишний finally, чтобы не сбросить loading раньше времени
-    if (loading.value) loading.value = false;
+    loading.value = false;
   }
 }
 
+// ====== Обработчики ======
 function onSubscriptionVerified() {
   subscriptionVerified.value = true;
   const telegramId = getTelegramId();
@@ -314,15 +329,7 @@ function onSubscriptionVerified() {
   }
 }
 
-function clearStorage() {
-  localStorage.removeItem('quiz_session');
-  localStorage.removeItem('telegram_id');
-  localStorage.removeItem('subscription_verified');
-  localStorage.removeItem('subscription_verified_at');
-  alert('✅ Все данные очищены! Страница перезагрузится.');
-  window.location.reload();
-}
-
+// ====== Lifecycle ======
 onMounted(async () => {
   await getData();
 });
