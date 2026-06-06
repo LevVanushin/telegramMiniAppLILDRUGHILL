@@ -222,65 +222,7 @@ onMounted(async () => {
 </script>
 
 <style>
-.container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 30px;
-  padding: 15px 30px 20px 30px ;
-}
-
-.loading, .error {
-  text-align: center;
-  padding: 20px;
-  font-size: 18px;
-}
-
-.error {
-  color: red;
-}
-
-.results {
-  background: #1e2a5e;
-  border-radius: 32px;
-  padding: 40px;
-  text-align: center;
-  color: white;
-  max-width: 500px;
-}
-
-.mike {
-  position: relative;
-  top: 10px;
-  width: 250px;
-  height: 250px;
-  transition-property: width, height, top;
-  transition-duration: .2s;
-  transition-timing-function: ease-in-out;
-}
-
-.mike:hover {
-  width: 300px;
-  height: 300px;
-  top: 0;
-}
-
-.shadow {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: -20px;
-  opacity: 80%;
-  background: linear-gradient(to bottom, #234082 10%, rgb(255, 255, 255) 90%);
-  filter: blur(10px);
-  z-index: -5;
-}
-
-.quiz {
-  align-self: center;
-}
-/* Анимации появления */
+/* ===== Анимации появления ===== */
 @keyframes fadeSlideDown {
   from {
     opacity: 0;
@@ -303,21 +245,83 @@ onMounted(async () => {
   }
 }
 
-/* Применяем к иконке */
+/* Анимация переключения вопросов */
+@keyframes questionSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(40px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+  padding: 15px 30px 20px 30px;
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 20px;
+  font-size: 18px;
+}
+
+.error {
+  color: red;
+}
+
+.results {
+  background: #1e2a5e;
+  border-radius: 32px;
+  padding: 40px;
+  text-align: center;
+  color: white;
+  max-width: 500px;
+  animation: fadeScaleUp 0.5s ease-out 0.2s both;
+}
+
 .mike {
-  /* ...существующие стили... */
+  position: relative;
+  top: 10px;
+  width: 250px;
+  height: 250px;
+  transition-property: width, height, top;
+  transition-duration: .2s;
+  transition-timing-function: ease-in-out;
   animation: fadeSlideDown 0.5s ease-out both;
 }
 
-/* Применяем к карточке */
-.quiz {
-  align-self: center;
-  animation: fadeScaleUp 0.5s ease-out 0.2s both; /* задержка 0.2s чтобы появилась после иконки */
+.mike:hover {
+  width: 300px;
+  height: 300px;
+  top: 0;
 }
 
-/* Результаты тоже с анимацией */
-.results {
-  /* ...существующие стили... */
+.shadow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: -20px;
+  opacity: 80%;
+  background: linear-gradient(to bottom, #234082 10%, rgb(255, 255, 255) 90%);
+  filter: blur(10px);
+  z-index: -5;
+}
+
+/* Карточка вопроса — появление при загрузке и при каждом переключении */
+.quiz {
+  align-self: center;
+  animation: questionSlideIn 0.35s ease-out both;
+}
+
+/* SubscriptionCheck — появление с той же логикой, что и карточка */
+.subscription-check {
   animation: fadeScaleUp 0.5s ease-out 0.2s both;
 }
 
