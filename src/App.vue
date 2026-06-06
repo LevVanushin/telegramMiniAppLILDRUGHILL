@@ -217,9 +217,10 @@ function clearStorage() {
 }
 
 onMounted(async () => {
+  getSession();
+
   await getData();
 
-  getSession();
 });
 </script>
 
