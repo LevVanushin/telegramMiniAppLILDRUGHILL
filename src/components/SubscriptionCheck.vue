@@ -12,12 +12,12 @@
 
     <div class="options-list">
       <button class="option-button subscribe-btn" @click="openTelegramLink">
-        
+        <span class="option-index">📱</span>
         Подписаться
       </button>
       
       <button @click="checkSubscription" class="option-button check-btn" :disabled="checking">
-       
+        <span class="option-index">✅</span>
         {{ checking ? 'Проверяем...' : 'Проверить подписку' }}
       </button>
     </div>
@@ -30,10 +30,10 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { supabase } from '../lib/supabase.js';
-import { defineProps, defineEmits } from 'vue';
+
 const emit = defineEmits(['verified']);
 
-const CHANNEL_USERNAME = 'lildrughillarmy'; 
+const CHANNEL_USERNAME = 'lildrughillarmy';
 const CHANNEL_LINK = 'https://t.me/lildrughillarmy';
 
 const checking = ref(false);
@@ -41,7 +41,6 @@ const errorMessage = ref('');
 const successMessage = ref('');
 const botToken = ref('');
 
-// Загрузка токена при монтировании
 onMounted(async () => {
   const { data } = await supabase
     .from('telegramData')
@@ -52,22 +51,6 @@ onMounted(async () => {
     botToken.value = data.botToken;
   } else {
     errorMessage.value = 'Ошибка: токен не загружен';
-  }
-  
-  // Проверяем сохранённую верификацию
-  const saved = localStorage.getItem('subscription_verified');
-  const savedUserId = localStorage.getItem('subscription_user_id');
-  const savedTime = localStorage.getItem('subscription_verified_at');
-  
-  // Получаем текущего пользователя из URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const userId = urlParams.get('user_id');
-  
-  if (saved === 'true' && savedUserId && userId && savedUserId === userId) {
-    const hoursPassed = (Date.now() - (parseInt(savedTime) || 0)) / (1000 * 60 * 60);
-    if (hoursPassed < 24) {
-      emit('verified');
-    }
   }
 });
 
@@ -90,14 +73,8 @@ async function checkSubscription() {
   errorMessage.value = '';
   successMessage.value = '';
   
-  // Получаем user_id из URL
   const urlParams = new URLSearchParams(window.location.search);
   let userId = urlParams.get('user_id');
-  
-  // Если нет в URL, пробуем из localStorage
-  if (!userId) {
-    userId = localStorage.getItem('user_id');
-  }
   
   if (!userId) {
     errorMessage.value = 'Не удалось определить пользователя. Перезапустите бота командой /start';
@@ -105,11 +82,7 @@ async function checkSubscription() {
     return;
   }
   
-  // Сохраняем для будущего
-  localStorage.setItem('user_id', userId);
-  
   try {
-    // Проверяем подписку через API бота
     const response = await fetch(`https://api.telegram.org/bot${botToken.value}/getChatMember`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -125,10 +98,9 @@ async function checkSubscription() {
       const status = data.result.status;
       if (status === 'creator' || status === 'administrator' || status === 'member' || status === 'restricted') {
         successMessage.value = '✅ Подписка подтверждена! Перенаправляем...';
-        localStorage.setItem('subscription_verified', 'true');
-        localStorage.setItem('subscription_user_id', userId);
-        localStorage.setItem('subscription_verified_at', Date.now());
-        setTimeout(() => emit('verified'), 1500);
+        setTimeout(() => {
+          emit('verified');
+        }, 1500);
       } else {
         errorMessage.value = '❌ Вы не подписаны на канал. Подпишитесь и нажмите "Проверить подписку"';
       }
@@ -146,6 +118,7 @@ async function checkSubscription() {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Geologica:wght,CRSV@100..900,0&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
 .card-container {
   background: linear-gradient(145deg, #2d376e 0%, #0c122f 100%);
   padding: 28px 24px 32px;
@@ -312,7 +285,6 @@ async function checkSubscription() {
   margin-top: 20px;
   font-size: 14px;
   text-align: center;
-  font-family: Georgia, 'Times New Roman', Times, serif;
 }
 
 .success-message {
@@ -320,7 +292,6 @@ async function checkSubscription() {
   margin-top: 20px;
   font-size: 14px;
   text-align: center;
-  font-family: Georgia, 'Times New Roman', Times, serif;
 }
 
 @media (max-width: 520px) {

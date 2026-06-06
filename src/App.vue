@@ -46,7 +46,7 @@ import { onMounted, ref, computed } from "vue";
 
 // ====== Конфигурация ======
 const SYNC_TIMEOUT = 30000;
-const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
+const SESSION_TTL = 7 * 24 * 60 * 60 * 1000; // 7 дней
 
 // ====== Реактивные данные ======
 const data = ref([]);
@@ -73,7 +73,7 @@ const currentOptions = computed(() => {
 });
 const score = computed(() => userAnswers.value.filter(a => a.isCorrect).length);
 
-// ====== Вспомогательные функции ======
+// ====== Telegram ID из URL ======
 function getTelegramId() {
   const urlParams = new URLSearchParams(window.location.search);
   let id = urlParams.get('user_id');
@@ -85,7 +85,7 @@ function getTelegramId() {
   return saved ? parseInt(saved) : null;
 }
 
-// Создание новой сессии
+// ====== Работа с сессией ======
 function createSession() {
   const session = {
     id: crypto.randomUUID(),
@@ -100,27 +100,22 @@ function createSession() {
     }
   };
   localStorage.setItem('quiz_session', JSON.stringify(session));
+  console.log('✨ Создана новая сессия');
   return session;
 }
 
-// Получение сессии из localStorage без удаления
 function getLocalSession() {
   const raw = localStorage.getItem('quiz_session');
   if (!raw) return null;
-  const session = JSON.parse(raw);
-  // не удаляем по истечению, а просто помечаем
-  return session;
+  return JSON.parse(raw);
 }
 
-// Применение данных сессии к состоянию викторины (восстанавливаем и счёт!)
 function loadProgressFromSession(session) {
   const progress = session.quizProgress;
   
-  // Восстанавливаем ответы
   userAnswers.value = progress.answers || [];
   currentIndex.value = progress.currentIndex || 0;
   
-  // ВАЖНО: восстанавливаем счёт завершённой викторины
   if (progress.isCompleted) {
     quizCompleted.value = true;
     completedScore.value = progress.finalScore || 0;
@@ -134,7 +129,8 @@ function loadProgressFromSession(session) {
       quizFinished.value = false;
     }
   }
-  // Принудительно пересчитываем баллы из ответов (на случай, если finalScore устарел)
+  
+  // Синхронизация finalScore с реальными ответами
   if (!quizCompleted.value && userAnswers.value.length > 0) {
     const correctCount = userAnswers.value.filter(a => a.isCorrect).length;
     if (correctCount !== progress.finalScore) {
@@ -143,13 +139,14 @@ function loadProgressFromSession(session) {
       localStorage.setItem('quiz_session', JSON.stringify(session));
     }
   }
+  
   console.log(`📊 Загружено: ответов ${userAnswers.value.length}, правильных ${score.value}, завершена: ${quizCompleted.value}`);
 }
 
-// Сохранение прогресса в localStorage и фоновая синхронизация
 function saveQuizProgress() {
   const session = getLocalSession();
   if (!session) return;
+  
   session.quizProgress = {
     currentIndex: currentIndex.value,
     answers: userAnswers.value,
@@ -159,14 +156,14 @@ function saveQuizProgress() {
   };
   session.expiresAt = Date.now() + SESSION_TTL;
   localStorage.setItem('quiz_session', JSON.stringify(session));
-  // Фоновая синхронизация с Supabase
+  
   syncSessionToSupabase().catch(e => console.warn(e));
 }
 
-// Отправка в Supabase
 async function syncSessionToSupabase() {
   const session = getLocalSession();
   if (!session) return;
+  
   const telegramId = getTelegramId();
   if (!telegramId) return;
 
@@ -187,20 +184,17 @@ async function syncSessionToSupabase() {
       expires_at: new Date(Date.now() + SESSION_TTL).toISOString(),
       quiz_progress: session.quizProgress,
       total_score: score.value,
-      subscription_verified: localStorage.getItem('subscription_verified') === 'true',
-      subscription_verified_at: localStorage.getItem('subscription_verified_at') 
-        ? new Date(parseInt(localStorage.getItem('subscription_verified_at'))).toISOString() 
-        : null,
       last_active: new Date().toISOString()
     }, { onConflict: 'telegram_id' });
+    console.log('✅ Сессия синхронизирована с Supabase');
   } catch (err) {
     console.warn('Ошибка синхронизации с Supabase:', err);
   }
 }
 
-// Загрузка сессии: сначала Supabase с таймаутом, потом localStorage
 async function loadSessionFromSupabase() {
   const telegramId = getTelegramId();
+  
   if (!telegramId) {
     const local = getLocalSession();
     if (local) {
@@ -242,22 +236,15 @@ async function loadSessionFromSupabase() {
       quizProgress: supabaseData.quiz_progress
     };
     localStorage.setItem('quiz_session', JSON.stringify(session));
-    if (supabaseData.subscription_verified) {
-      localStorage.setItem('subscription_verified', 'true');
-      localStorage.setItem('subscription_user_id', telegramId);
-      localStorage.setItem('subscription_verified_at', new Date(supabaseData.subscription_verified_at).getTime());
-    }
     loadProgressFromSession(session);
     console.log('✅ Данные загружены из Supabase');
     return;
   }
 
-  // Fallback на localStorage
   const localSession = getLocalSession();
   if (localSession) {
     loadProgressFromSession(localSession);
     console.log('⚠️ Использованы данные из localStorage (fallback)');
-    // При первой возможности синхронизируем
     syncSessionToSupabase().catch(e => console.warn(e));
   } else {
     createSession();
@@ -321,12 +308,6 @@ async function getData() {
 // ====== Обработчики ======
 function onSubscriptionVerified() {
   subscriptionVerified.value = true;
-  const telegramId = getTelegramId();
-  if (telegramId) {
-    localStorage.setItem('subscription_verified', 'true');
-    localStorage.setItem('subscription_verified_at', Date.now());
-    syncSessionToSupabase();
-  }
 }
 
 // ====== Lifecycle ======
@@ -336,7 +317,6 @@ onMounted(async () => {
 </script>
 
 <style>
-/* ... твои стили без изменений ... */
 @keyframes fadeSlideDown {
   from { opacity: 0; transform: translateY(-30px); }
   to { opacity: 1; transform: translateY(0); }
