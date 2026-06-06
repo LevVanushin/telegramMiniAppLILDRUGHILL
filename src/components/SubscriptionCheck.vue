@@ -12,12 +12,10 @@
 
     <div class="options-list">
       <button class="option-button subscribe-btn" @click="openTelegramLink">
-        <span class="option-index">📱</span>
         Подписаться
       </button>
       
       <button @click="checkSubscription" class="option-button check-btn" :disabled="checking">
-        <span class="option-index">✅</span>
         {{ checking ? 'Проверяем...' : 'Проверить подписку' }}
       </button>
     </div>
