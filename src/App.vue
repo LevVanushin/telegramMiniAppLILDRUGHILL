@@ -433,6 +433,7 @@ onMounted(async () => {
 .quiz {
   align-self: center;
   animation: questionSlideIn 0.35s ease-out both;
+  padding-bottom: 30px;
 }
 
 .subscription-check {
