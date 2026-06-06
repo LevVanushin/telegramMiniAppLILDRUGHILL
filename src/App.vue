@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <img src="./assets/mike.png" alt="" class="mike">
-   
+   <button @click="clearStorage">Сбросить прогресс</button>
     <SubscriptionCheck 
       v-if="!subscriptionVerified && data.length > 0"
       class="subscription-check"
@@ -13,7 +13,7 @@
       
       <div v-else-if="quizCompleted" class="results">
         <h2>Викторина уже пройдена!</h2>
-        <p class="score">Баллы: {{ Math.ceil(completedScore * 6.25) }} из {{ data.length * 5 }}</p>
+        <p class="score">Баллы: {{ Math.ceil(completedScore * 5) }} из {{ data.length * 5 }}</p>
         <p class="thankyou-message">Благодарим за прохождение. Желаем удачи всем на реальных экзаменах!</p>
         <p class="armyCaption">lildrughill army - off fan page</p>
       </div>
@@ -50,7 +50,7 @@ import { onMounted, ref, computed } from "vue";
 
 // ====== Конфигурация ======
 const SYNC_TIMEOUT = 30000;
-const SESSION_TTL = 7 * 24 * 60 * 60 * 1000; // 7 дней
+const SESSION_TTL = 24 * 60 * 60 * 1000; 
 
 // ====== Реактивные данные ======
 const data = ref([]);
