@@ -353,7 +353,7 @@ onMounted(async () => {
 .error { color: red; }
 
 .results {
-  background: linear-gradient(to bottom, #3b4fa7 0%, #172147 100%);
+  background: linear-gradient(to bottom, #234082 0%, #172147 100%);
   border-radius: 32px;
   padding: 40px;
   text-align: center;
