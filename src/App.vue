@@ -28,7 +28,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { supabase } from '../lib/supabase.js';
+import { supabase } from './lib/supabase.js';
 
 const emit = defineEmits(['verified']);
 
