@@ -95,12 +95,12 @@ async function checkSubscription() {
     if (data.ok && data.result) {
       const status = data.result.status;
       if (status === 'creator' || status === 'administrator' || status === 'member' || status === 'restricted') {
-        successMessage.value = '✅ Подписка подтверждена! Перенаправляем...';
+        successMessage.value = 'Подписка подтверждена! Перенаправляем...';
         setTimeout(() => {
           emit('verified');
         }, 1500);
       } else {
-        errorMessage.value = '❌ Вы не подписаны на канал. Подпишитесь и нажмите "Проверить подписку"';
+        errorMessage.value = 'Вы не подписаны на канал. Подпишитесь и нажмите "Проверить подписку"';
       }
     } else {
       errorMessage.value = `Ошибка: ${data.description || 'Не удалось проверить'}`;
@@ -285,7 +285,7 @@ async function checkSubscription() {
   margin-top: 20px;
   font-size: 14px;
   font-weight: 600;
-  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-family: "Roboto" Times, serif;
   text-align: center;
 }
 
@@ -294,8 +294,7 @@ async function checkSubscription() {
   margin-top: 20px;
   font-size: 14px;
   font-weight: 600;
-  font-family: Georgia, 'Times New Roman', Times, serif;
-  text-align: center;
+  font-family: "Roboto", sans-serif;  text-align: center;
 }
 
 @media (max-width: 520px) {
