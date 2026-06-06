@@ -1,119 +1,338 @@
 <template>
-  <div class="card-container">
-    <div class="army-signature">
-      <p class="army">lildrughill army</p>
-      <p class="mikeCaption">MIKE</p>
-    </div>
+  <div class="container">
+    <img src="./assets/mike.png" alt="" class="mike">
+   
+    <SubscriptionCheck 
+      v-if="!subscriptionVerified && data.length > 0"
+      class="subscription-check"
+      @verified="onSubscriptionVerified"
+    />
 
-    <h1 class="main-title">Подпишись на канал</h1>
-    <p class="subtitle">обязательное условие</p>
-    <p class="description">Для прохождения викторины необходимо подписаться на наш Telegram канал</p>
-
-    <div class="options-list">
-      <button class="option-button subscribe-btn" @click="openTelegramLink">
-        <span class="option-index">📱</span>
-        Подписаться
-      </button>
+    <template v-else>
+      <div v-if="loading" class="loading">Загрузка вопросов...</div>
       
-      <button @click="checkSubscription" class="option-button check-btn" :disabled="checking">
-        <span class="option-index">✅</span>
-        {{ checking ? 'Проверяем...' : 'Проверить подписку' }}
-      </button>
-    </div>
-
-    <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-    <p v-if="successMessage" class="success-message">{{ successMessage }}</p>
+      <div v-else-if="quizCompleted" class="results">
+        <h2>Викторина уже пройдена!</h2>
+        <p>Баллы: {{ completedScore * 5 }} из {{ data.length * 5 }}</p>
+      </div>
+      
+      <quizCard 
+        v-else-if="data.length > 0 && !quizFinished"
+        class="quiz" 
+        :key="currentIndex"
+        :title="currentQuestion?.question_text"
+        :options="currentOptions"
+        :correctOption="currentQuestion?.correct_option" 
+        @select="handleAnswer"
+      />
+      
+      <div v-else-if="quizFinished" class="results">
+        <h2>Викторина завершена!</h2>
+        <p>Ваш балл: {{ score * 5 }} из {{ data.length * 5 }}</p>
+      </div>
+      
+      <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
+      <div v-else-if="!loading" class="error">Нет данных</div>
+    </template>
   </div>
+  <div class="shadow"></div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { supabase } from './lib/supabase.js';
+import { supabase } from "./lib/supabase.js";
+import quizCard from "./components/quizCard.vue";
+import SubscriptionCheck from "./components/SubscriptionCheck.vue";
+import { onMounted, ref, computed } from "vue";
 
-const emit = defineEmits(['verified']);
+// ====== Конфигурация ======
+const SYNC_TIMEOUT = 30000;
+const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
 
-const CHANNEL_USERNAME = 'lildrughillarmy';
-const CHANNEL_LINK = 'https://t.me/lildrughillarmy';
-
-const checking = ref(false);
+// ====== Реактивные данные ======
+const data = ref([]);
+const loading = ref(true);
 const errorMessage = ref('');
-const successMessage = ref('');
-const botToken = ref('');
+const subscriptionVerified = ref(false);
 
-// Загрузка токена при монтировании
-onMounted(async () => {
-  const { data } = await supabase
-    .from('telegramData')
-    .select('botToken')
-    .single();
-  
-  if (data?.botToken) {
-    botToken.value = data.botToken;
-  } else {
-    errorMessage.value = 'Ошибка: токен не загружен';
-  }
+const currentIndex = ref(0);
+const userAnswers = ref([]);
+const quizFinished = ref(false);
+const quizCompleted = ref(false);
+const completedScore = ref(0);
+
+// ====== Computed ======
+const currentQuestion = computed(() => data.value[currentIndex.value]);
+const currentOptions = computed(() => {
+  if (!currentQuestion.value) return [];
+  return [
+    currentQuestion.value.option_a,
+    currentQuestion.value.option_b,
+    currentQuestion.value.option_c,
+    currentQuestion.value.option_d
+  ];
 });
+const score = computed(() => userAnswers.value.filter(a => a.isCorrect).length);
 
-function openTelegramLink() {
-  const tg = window.Telegram?.WebApp;
-  if (tg) {
-    tg.openTelegramLink(CHANNEL_LINK);
-  } else {
-    window.open(CHANNEL_LINK, '_blank');
-  }
-}
-
-async function checkSubscription() {
-  if (!botToken.value) {
-    errorMessage.value = 'Токен не загружен, попробуйте через секунду';
-    return;
-  }
-  
-  checking.value = true;
-  errorMessage.value = '';
-  successMessage.value = '';
-  
-  // Получаем user_id из URL
+// ====== Вспомогательные функции ======
+function getTelegramId() {
   const urlParams = new URLSearchParams(window.location.search);
-  let userId = urlParams.get('user_id');
-  
-  if (!userId) {
-    errorMessage.value = 'Не удалось определить пользователя. Перезапустите бота командой /start';
-    checking.value = false;
-    return;
+  let id = urlParams.get('user_id');
+  if (id) {
+    localStorage.setItem('telegram_id', id);
+    return parseInt(id);
   }
-  
-  try {
-    const response = await fetch(`https://api.telegram.org/bot${botToken.value}/getChatMember`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: `@${CHANNEL_USERNAME}`,
-        user_id: parseInt(userId)
-      })
-    });
-    
-    const data = await response.json();
-    
-    if (data.ok && data.result) {
-      const status = data.result.status;
-      if (status === 'creator' || status === 'administrator' || status === 'member' || status === 'restricted') {
-        successMessage.value = '✅ Подписка подтверждена! Перенаправляем...';
-        setTimeout(() => {
-          emit('verified');
-        }, 1500);
-      } else {
-        errorMessage.value = '❌ Вы не подписаны на канал. Подпишитесь и нажмите "Проверить подписку"';
-      }
-    } else {
-      errorMessage.value = `Ошибка: ${data.description || 'Не удалось проверить'}`;
+  const saved = localStorage.getItem('telegram_id');
+  return saved ? parseInt(saved) : null;
+}
+
+// Создание новой сессии
+function createSession() {
+  const session = {
+    id: crypto.randomUUID(),
+    createdAt: Date.now(),
+    expiresAt: Date.now() + SESSION_TTL,
+    quizProgress: {
+      currentIndex: 0,
+      answers: [],
+      isCompleted: false,
+      finalScore: 0,
+      savedAt: Date.now()
     }
-  } catch (error) {
-    errorMessage.value = 'Ошибка соединения. Попробуйте позже.';
-  } finally {
-    checking.value = false;
+  };
+  localStorage.setItem('quiz_session', JSON.stringify(session));
+  return session;
+}
+
+// Получение сессии из localStorage без удаления
+function getLocalSession() {
+  const raw = localStorage.getItem('quiz_session');
+  if (!raw) return null;
+  const session = JSON.parse(raw);
+  // не удаляем по истечению, а просто помечаем
+  return session;
+}
+
+// Применение данных сессии к состоянию викторины (восстанавливаем и счёт!)
+function loadProgressFromSession(session) {
+  const progress = session.quizProgress;
+  
+  // Восстанавливаем ответы
+  userAnswers.value = progress.answers || [];
+  currentIndex.value = progress.currentIndex || 0;
+  
+  // ВАЖНО: восстанавливаем счёт завершённой викторины
+  if (progress.isCompleted) {
+    quizCompleted.value = true;
+    completedScore.value = progress.finalScore || 0;
+    quizFinished.value = false;
+  } else {
+    quizCompleted.value = false;
+    completedScore.value = 0;
+    if (currentIndex.value >= data.value.length && data.value.length > 0) {
+      quizFinished.value = true;
+    } else {
+      quizFinished.value = false;
+    }
+  }
+  // Принудительно пересчитываем баллы из ответов (на случай, если finalScore устарел)
+  if (!quizCompleted.value && userAnswers.value.length > 0) {
+    const correctCount = userAnswers.value.filter(a => a.isCorrect).length;
+    if (correctCount !== progress.finalScore) {
+      progress.finalScore = correctCount;
+      session.quizProgress = progress;
+      localStorage.setItem('quiz_session', JSON.stringify(session));
+    }
+  }
+  console.log(`📊 Загружено: ответов ${userAnswers.value.length}, правильных ${score.value}, завершена: ${quizCompleted.value}`);
+}
+
+// Сохранение прогресса в localStorage и фоновая синхронизация
+function saveQuizProgress() {
+  const session = getLocalSession();
+  if (!session) return;
+  session.quizProgress = {
+    currentIndex: currentIndex.value,
+    answers: userAnswers.value,
+    isCompleted: quizFinished.value || quizCompleted.value,
+    finalScore: score.value,
+    savedAt: Date.now()
+  };
+  session.expiresAt = Date.now() + SESSION_TTL;
+  localStorage.setItem('quiz_session', JSON.stringify(session));
+  // Фоновая синхронизация с Supabase
+  syncSessionToSupabase().catch(e => console.warn(e));
+}
+
+// Отправка в Supabase
+async function syncSessionToSupabase() {
+  const session = getLocalSession();
+  if (!session) return;
+  const telegramId = getTelegramId();
+  if (!telegramId) return;
+
+  session.quizProgress = {
+    currentIndex: currentIndex.value,
+    answers: userAnswers.value,
+    isCompleted: quizFinished.value || quizCompleted.value,
+    finalScore: score.value,
+    savedAt: Date.now()
+  };
+  localStorage.setItem('quiz_session', JSON.stringify(session));
+
+  try {
+    await supabase.from('user_sessions').upsert({
+      telegram_id: telegramId,
+      session_id: session.id,
+      created_at: new Date(session.createdAt).toISOString(),
+      expires_at: new Date(Date.now() + SESSION_TTL).toISOString(),
+      quiz_progress: session.quizProgress,
+      total_score: score.value,
+      subscription_verified: localStorage.getItem('subscription_verified') === 'true',
+      subscription_verified_at: localStorage.getItem('subscription_verified_at') 
+        ? new Date(parseInt(localStorage.getItem('subscription_verified_at'))).toISOString() 
+        : null,
+      last_active: new Date().toISOString()
+    }, { onConflict: 'telegram_id' });
+  } catch (err) {
+    console.warn('Ошибка синхронизации с Supabase:', err);
   }
 }
+
+// Загрузка сессии: сначала Supabase с таймаутом, потом localStorage
+async function loadSessionFromSupabase() {
+  const telegramId = getTelegramId();
+  if (!telegramId) {
+    const local = getLocalSession();
+    if (local) {
+      loadProgressFromSession(local);
+    } else {
+      createSession();
+    }
+    return;
+  }
+
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('Timeout')), SYNC_TIMEOUT);
+  });
+
+  const fetchPromise = supabase
+    .from('user_sessions')
+    .select('*')
+    .eq('telegram_id', telegramId)
+    .maybeSingle();
+
+  let supabaseData = null;
+  try {
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
+    clearTimeout(timeoutId);
+    if (!response.error && response.data) {
+      supabaseData = response.data;
+    }
+  } catch (err) {
+    clearTimeout(timeoutId);
+    console.warn('Supabase timeout/error, используем localStorage');
+  }
+
+  if (supabaseData && supabaseData.quiz_progress) {
+    const session = {
+      id: supabaseData.session_id,
+      createdAt: new Date(supabaseData.created_at).getTime(),
+      expiresAt: new Date(supabaseData.expires_at).getTime(),
+      quizProgress: supabaseData.quiz_progress
+    };
+    localStorage.setItem('quiz_session', JSON.stringify(session));
+    if (supabaseData.subscription_verified) {
+      localStorage.setItem('subscription_verified', 'true');
+      localStorage.setItem('subscription_user_id', telegramId);
+      localStorage.setItem('subscription_verified_at', new Date(supabaseData.subscription_verified_at).getTime());
+    }
+    loadProgressFromSession(session);
+    console.log('✅ Данные загружены из Supabase');
+    return;
+  }
+
+  // Fallback на localStorage
+  const localSession = getLocalSession();
+  if (localSession) {
+    loadProgressFromSession(localSession);
+    console.log('⚠️ Использованы данные из localStorage (fallback)');
+    // При первой возможности синхронизируем
+    syncSessionToSupabase().catch(e => console.warn(e));
+  } else {
+    createSession();
+  }
+}
+
+// ====== Логика викторины ======
+function handleAnswer(selectedText) {
+  if (!currentQuestion.value) return;
+  
+  const optionMap = {
+    [currentQuestion.value.option_a]: 'A',
+    [currentQuestion.value.option_b]: 'B',
+    [currentQuestion.value.option_c]: 'C',
+    [currentQuestion.value.option_d]: 'D'
+  };
+  
+  const selectedLetter = optionMap[selectedText];
+  const isCorrect = (selectedLetter === currentQuestion.value.correct_option);
+  
+  userAnswers.value.push({
+    questionId: currentQuestion.value.id,
+    questionText: currentQuestion.value.question_text,
+    selectedAnswer: selectedLetter,
+    isCorrect: isCorrect,
+    timestamp: Date.now()
+  });
+  
+  if (currentIndex.value + 1 < data.value.length) {
+    currentIndex.value++;
+    saveQuizProgress();
+  } else {
+    quizFinished.value = true;
+    saveQuizProgress();
+  }
+}
+
+// ====== Загрузка вопросов ======
+async function getData() {
+  try {
+    loading.value = true;
+    const response = await supabase
+      .from('questions')
+      .select('*')
+      .order('id');
+    
+    if (response.error) throw new Error(response.error.message);
+    data.value = response.data || [];
+    
+    if (data.value.length > 0) {
+      await loadSessionFromSupabase();
+    }
+  } catch (err) {
+    console.error(err);
+    errorMessage.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+}
+
+// ====== Обработчики ======
+function onSubscriptionVerified() {
+  subscriptionVerified.value = true;
+  const telegramId = getTelegramId();
+  if (telegramId) {
+    localStorage.setItem('subscription_verified', 'true');
+    localStorage.setItem('subscription_verified_at', Date.now());
+    syncSessionToSupabase();
+  }
+}
+
+// ====== Lifecycle ======
+onMounted(async () => {
+  await getData();
+});
 </script>
 
 <style>
