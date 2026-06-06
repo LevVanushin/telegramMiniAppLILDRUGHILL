@@ -341,7 +341,7 @@ onMounted(async () => {
   justify-content: center;
   align-items: center;
   gap: 30px;
-  padding: 10px 30px 130px 30px;
+  padding: 0px 30px 130px 30px;
 }
 
 .loading, .error {
@@ -406,8 +406,8 @@ onMounted(async () => {
 
 .mike {
   position: relative;
-  width: 250px;
-  height: 250px;
+  width: 220px;
+  height: 220px;
   transition: .2s ease-in-out;
   animation: fadeSlideDown 0.5s ease-out both;
 }
