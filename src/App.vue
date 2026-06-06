@@ -421,7 +421,7 @@ onMounted(async () => {
   position: absolute;
   width: 100%;
   height: 100%;
-  top: -20px;
+  top: 0px;
   opacity: 80%;
   background: linear-gradient(to bottom, #234082 10%, rgb(255, 255, 255) 90%);
   filter: blur(10px);
