@@ -37,20 +37,20 @@ const CHANNEL_LINK = 'https://t.me/lildrughillarmy';
 const checking = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
-const botToken = ref('');
+const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
 
-onMounted(async () => {
-  const { data } = await supabase
-    .from('telegramData')
-    .select('botToken')
-    .single();
+// onMounted(async () => {
+//   const { data } = await supabase
+//     .from('telegramData')
+//     .select('botToken')
+//     .single();
   
-  if (data?.botToken) {
-    botToken.value = data.botToken;
-  } else {
-    errorMessage.value = 'Ошибка: токен не загружен';
-  }
-});
+//   if (data?.botToken) {
+//     botToken.value = data.botToken;
+//   } else {
+//     errorMessage.value = 'Ошибка: токен не загружен';
+//   }
+// });
 
 function openTelegramLink() {
   const tg = window.Telegram?.WebApp;
