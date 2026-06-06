@@ -58,7 +58,7 @@ const currentIndex = ref(0);
 const userAnswers = ref([]);
 const quizFinished = ref(false);
 const quizCompleted = ref(false);
-const completedScore = ref(0); // сохранённый счёт из сессии
+const completedScore = ref(0);
 
 // ====== Computed ======
 const currentQuestion = computed(() => data.value[currentIndex.value]);
@@ -75,7 +75,6 @@ const score = computed(() => userAnswers.value.filter(a => a.isCorrect).length);
 
 // ====== Работа с сессией (localStorage + Supabase) ======
 
-// Получаем telegram_id из URL (передаётся ботом)
 function getTelegramId() {
   const urlParams = new URLSearchParams(window.location.search);
   let id = urlParams.get('user_id');
@@ -87,17 +86,16 @@ function getTelegramId() {
   return saved ? parseInt(saved) : null;
 }
 
-// Создание новой сессии
 function createSession() {
   const session = {
     id: crypto.randomUUID(),
     createdAt: Date.now(),
-    expiresAt: Date.now() + (30 * 60000), // 30 минут
+    expiresAt: Date.now() + (30 * 60000),
     quizProgress: {
       currentIndex: 0,
       answers: [],
       isCompleted: false,
-      finalScore: 0,      // количество правильных ответов
+      finalScore: 0,
       savedAt: Date.now()
     }
   };
@@ -105,7 +103,6 @@ function createSession() {
   return session;
 }
 
-// Получение сессии из localStorage (с проверкой истечения)
 function getLocalSession() {
   const raw = localStorage.getItem('quiz_session');
   if (!raw) return null;
@@ -117,7 +114,6 @@ function getLocalSession() {
   return session;
 }
 
-// Сохранение сессии в localStorage и Supabase (синхронизация)
 async function syncSessionToSupabase() {
   const session = getLocalSession();
   if (!session) return;
@@ -128,7 +124,6 @@ async function syncSessionToSupabase() {
     return;
   }
 
-  // Обновим данные в сессии перед отправкой
   session.quizProgress = {
     currentIndex: currentIndex.value,
     answers: userAnswers.value,
@@ -138,7 +133,6 @@ async function syncSessionToSupabase() {
   };
   localStorage.setItem('quiz_session', JSON.stringify(session));
 
-  // Отправляем в Supabase (фоном)
   try {
     await supabase.from('user_sessions').upsert({
       telegram_id: telegramId,
@@ -146,7 +140,7 @@ async function syncSessionToSupabase() {
       created_at: new Date(session.createdAt).toISOString(),
       expires_at: new Date(session.expiresAt).toISOString(),
       quiz_progress: session.quizProgress,
-      total_score: score.value, // новое поле для быстрого доступа
+      total_score: score.value,
       subscription_verified: localStorage.getItem('subscription_verified') === 'true',
       subscription_verified_at: localStorage.getItem('subscription_verified_at') 
         ? new Date(parseInt(localStorage.getItem('subscription_verified_at'))).toISOString() 
@@ -159,13 +153,15 @@ async function syncSessionToSupabase() {
   }
 }
 
-// Загрузка сессии: сначала пытаемся Supabase (таймаут), потом fallback на localStorage
 async function loadSessionFromSupabase() {
   const telegramId = getTelegramId();
   if (!telegramId) {
+    // Нет Telegram ID, используем только localStorage
     const localSession = getLocalSession();
     if (localSession) {
       loadProgressFromSession(localSession);
+    } else {
+      createSession();
     }
     return;
   }
@@ -186,7 +182,9 @@ async function loadSessionFromSupabase() {
     clearTimeout(timeoutId);
 
     if (response.error) throw response.error;
-    if (response.data) {
+
+    // Если данные есть в Supabase
+    if (response.data && response.data.quiz_progress && Object.keys(response.data.quiz_progress).length > 0) {
       const supabaseSession = response.data;
       const session = {
         id: supabaseSession.session_id,
@@ -209,17 +207,17 @@ async function loadSessionFromSupabase() {
     console.warn('Не удалось загрузить сессию из Supabase (таймаут или ошибка):', err);
   }
 
-  // Fallback: загружаем из localStorage
+  // Если данных в Supabase нет (response.data === null) или ошибка — пробуем localStorage
   const localSession = getLocalSession();
   if (localSession) {
     loadProgressFromSession(localSession);
-    console.log('⚠️ Использованы данные из localStorage (fallback)');
+    console.log('⚠️ Данные загружены из localStorage (fallback)');
   } else {
     createSession();
+    console.log('🆕 Новая сессия создана');
   }
 }
 
-// Применяем данные сессии к состоянию викторины
 function loadProgressFromSession(session) {
   const progress = session.quizProgress;
   if (progress.isCompleted) {
@@ -234,7 +232,6 @@ function loadProgressFromSession(session) {
   }
 }
 
-// Сохранение прогресса (вызывается при изменениях)
 function saveQuizProgress() {
   const session = getLocalSession();
   if (!session) return;
@@ -246,7 +243,6 @@ function saveQuizProgress() {
     savedAt: Date.now()
   };
   localStorage.setItem('quiz_session', JSON.stringify(session));
-  // Фоновая синхронизация с Supabase
   syncSessionToSupabase().catch(e => console.warn(e));
 }
 
@@ -281,7 +277,6 @@ function handleAnswer(selectedText) {
   }
 }
 
-// ====== Загрузка вопросов ======
 async function getData() {
   try {
     loading.value = true;
@@ -295,16 +290,20 @@ async function getData() {
     
     if (data.value.length > 0) {
       await loadSessionFromSupabase();
+    } else {
+      // если нет вопросов, всё равно завершаем загрузку
+      loading.value = false;
     }
   } catch (err) {
     console.error(err);
     errorMessage.value = err.message;
-  } finally {
     loading.value = false;
+  } finally {
+    // убираем лишний finally, чтобы не сбросить loading раньше времени
+    if (loading.value) loading.value = false;
   }
 }
 
-// ====== Обработчики ======
 function onSubscriptionVerified() {
   subscriptionVerified.value = true;
   const telegramId = getTelegramId();
@@ -324,14 +323,13 @@ function clearStorage() {
   window.location.reload();
 }
 
-// ====== Lifecycle ======
 onMounted(async () => {
   await getData();
 });
 </script>
 
 <style>
-/* ===== Анимации появления ===== */
+/* ... твои стили без изменений ... */
 @keyframes fadeSlideDown {
   from { opacity: 0; transform: translateY(-30px); }
   to { opacity: 1; transform: translateY(0); }
