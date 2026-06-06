@@ -26,31 +26,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { supabase } from '../lib/supabase.js';
+import { ref } from 'vue';
 
 const emit = defineEmits(['verified']);
 
 const CHANNEL_USERNAME = 'lildrughillarmy';
 const CHANNEL_LINK = 'https://t.me/lildrughillarmy';
 
+// Берём токен из переменных окружения Vite
+const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+
 const checking = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
-const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-
-// onMounted(async () => {
-//   const { data } = await supabase
-//     .from('telegramData')
-//     .select('botToken')
-//     .single();
-  
-//   if (data?.botToken) {
-//     botToken.value = data.botToken;
-//   } else {
-//     errorMessage.value = 'Ошибка: токен не загружен';
-//   }
-// });
 
 function openTelegramLink() {
   const tg = window.Telegram?.WebApp;
@@ -62,8 +50,8 @@ function openTelegramLink() {
 }
 
 async function checkSubscription() {
-  if (!botToken.value) {
-    errorMessage.value = 'Токен не загружен, попробуйте через секунду';
+  if (!BOT_TOKEN) {
+    errorMessage.value = 'Токен не загружен, проверьте переменные окружения';
     return;
   }
   
@@ -81,7 +69,7 @@ async function checkSubscription() {
   }
   
   try {
-    const response = await fetch(`https://api.telegram.org/bot${botToken.value}/getChatMember`, {
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
