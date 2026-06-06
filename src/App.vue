@@ -1,7 +1,6 @@
 <template>
   <div class="container">
     <img src="./assets/mike.png" alt="" class="mike">
-   <button @click="clearStorage">Сбросить прогресс</button>
     <SubscriptionCheck 
       v-if="!subscriptionVerified && data.length > 0"
       class="subscription-check"
@@ -315,8 +314,8 @@ function onSubscriptionVerified() {
 }
 
 // ====== Lifecycle ======
-onMounted(async () => {
-  await getData();
+onMounted(() => {
+  localStorage.clear();
 });
 </script>
 
