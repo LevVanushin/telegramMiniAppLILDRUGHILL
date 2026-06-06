@@ -280,10 +280,47 @@ onMounted(async () => {
 .quiz {
   align-self: center;
 }
-
-@media (max-width){
-
+/* Анимации появления */
+@keyframes fadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
+@keyframes fadeScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Применяем к иконке */
+.mike {
+  /* ...существующие стили... */
+  animation: fadeSlideDown 0.5s ease-out both;
+}
+
+/* Применяем к карточке */
+.quiz {
+  align-self: center;
+  animation: fadeScaleUp 0.5s ease-out 0.2s both; /* задержка 0.2s чтобы появилась после иконки */
+}
+
+/* Результаты тоже с анимацией */
+.results {
+  /* ...существующие стили... */
+  animation: fadeScaleUp 0.5s ease-out 0.2s both;
+}
+
 @media(max-width: 330px) {
   .container {
     padding: 5px;
