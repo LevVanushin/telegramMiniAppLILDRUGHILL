@@ -315,7 +315,7 @@ function onSubscriptionVerified() {
 
 // ====== Lifecycle ======
 onMounted(async () => {
-  localStorage.clear()
+  await getData();
 });
 </script>
 
