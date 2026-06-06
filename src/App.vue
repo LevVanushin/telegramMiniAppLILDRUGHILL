@@ -374,8 +374,6 @@ onMounted(async () => {
 .score {
   font-size: 23px;
   font-weight: 600;
-  border-bottom: 1px dashed gray;
-  padding-bottom: 15px;
   margin-bottom: 20px;
 }
 
@@ -389,6 +387,8 @@ onMounted(async () => {
   opacity: 0.8;
   text-align: center;
   margin: 20px 0 10px;
+  border-bottom: 1px dashed gray;
+  padding-bottom: 15px;
   line-height: 1.4;
 }
 
