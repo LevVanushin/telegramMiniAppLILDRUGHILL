@@ -341,7 +341,7 @@ onMounted(async () => {
   justify-content: center;
   align-items: center;
   gap: 30px;
-  padding: 5px 30px 70px 30px;
+  padding: 10px 30px 130px 30px;
 }
 
 .loading, .error {
@@ -406,9 +406,8 @@ onMounted(async () => {
 
 .mike {
   position: relative;
-  top: 10px;
-  width: 250px;
-  height: 250px;
+  width: 200px;
+  height: 200px;
   transition: .2s ease-in-out;
   animation: fadeSlideDown 0.5s ease-out both;
 }
@@ -416,7 +415,6 @@ onMounted(async () => {
 .mike:hover {
   width: 300px;
   height: 300px;
-  top: 0;
 }
 
 .shadow {
@@ -433,7 +431,7 @@ onMounted(async () => {
 .quiz {
   align-self: center;
   animation: questionSlideIn 0.35s ease-out both;
-  padding-bottom: 30px;
+  margin-bottom: 30px;
 }
 
 .subscription-check {
