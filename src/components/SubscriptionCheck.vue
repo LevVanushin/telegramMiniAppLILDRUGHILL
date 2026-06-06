@@ -226,6 +226,8 @@ async function checkSubscription() {
   width: 100%;
 }
 
+
+
 .option-index {
   background: rgba(255, 255, 255, 0.12);
   width: 32px;
@@ -282,6 +284,8 @@ async function checkSubscription() {
   color: #ff6b6b;
   margin-top: 20px;
   font-size: 14px;
+  font-weight: 600;
+  font-family: Georgia, 'Times New Roman', Times, serif;
   text-align: center;
 }
 
@@ -289,6 +293,8 @@ async function checkSubscription() {
   color: #5df2b0;
   margin-top: 20px;
   font-size: 14px;
+  font-weight: 600;
+  font-family: Georgia, 'Times New Roman', Times, serif;
   text-align: center;
 }
 

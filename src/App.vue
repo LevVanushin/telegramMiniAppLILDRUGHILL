@@ -15,7 +15,7 @@
         <h2>Викторина уже пройдена!</h2>
         <p class="score">Баллы: {{ completedScore * 5 }} из {{ data.length * 5 }}</p>
         <p class="thankyou-message">Благодарим за прохождение. Желаем удачи всем на реальных экзаменах!</p>
-        <p class="armyCaption">lildrughillarmy - off fun pag</p>
+        <p class="armyCaption">lildrughillarmy - off fun page</p>
       </div>
       
       <quizCard 
