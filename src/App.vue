@@ -11,9 +11,10 @@
     <template v-else>
       <div v-if="loading" class="loading">Загрузка вопросов...</div>
       
-      <div v-else-if=quizCompleted class="results">
+      <div v-else-if="quizCompleted" class="results">
         <h2>Викторина уже пройдена!</h2>
         <p class="score">Баллы: {{ completedScore * 5 }} из {{ data.length * 5 }}</p>
+        <p class="thankyou-message">Благодарим за прохождение. Желаем удачи всем на реальных экзаменах!</p>
         <p class="armyCaption">lildrughillarmy</p>
       </div>
       
@@ -28,8 +29,9 @@
       />
       
       <div v-else-if="quizFinished" class="results">
-        <h2>Викторина уже пройдена!</h2>
-        <p class="score">Баллы: {{ completedScore * 5 }} из {{ data.length * 5 }}</p>
+        <h2>Викторина завершена!</h2>
+        <p class="score">Баллы: {{ score * 5 }} из {{ data.length * 5 }}</p>
+        <p class="thankyou-message">Благодарим за прохождение. Желаем удачи всем на реальных экзаменах!</p>
         <p class="armyCaption">lildrughillarmy</p>
       </div>
       
@@ -319,7 +321,6 @@ onMounted(async () => {
 </script>
 
 <style>
-
 @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 
 @keyframes fadeSlideDown {
@@ -334,6 +335,7 @@ onMounted(async () => {
   from { opacity: 0; transform: translateY(40px) scale(0.97); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
 .container {
   display: flex;
   flex-direction: column;
@@ -342,17 +344,17 @@ onMounted(async () => {
   gap: 30px;
   padding: 15px 30px 20px 30px;
 }
+
 .loading, .error {
   text-align: center;
   padding: 20px;
   font-size: 18px;
 }
+
 .error { color: red; }
 
 .results {
-  /* background: #1e2a5e; */
   background: linear-gradient(to bottom, #3b4fa7 0%, #172147 100%);
-
   border-radius: 32px;
   padding: 40px;
   text-align: center;
@@ -361,6 +363,7 @@ onMounted(async () => {
   color: white;
   max-width: 500px;
   animation: fadeScaleUp 0.5s ease-out 0.2s both;
+  position: relative;
 }
 
 .results h2 {
@@ -368,17 +371,31 @@ onMounted(async () => {
   margin-bottom: 10px;
 }
 
-.score{
+.score {
   font-size: 23px;
   font-weight: 600;
   border-bottom: 1px dashed gray;
-  padding-bottom: 145px;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
 }
 
-.armyCaption{
+.thankyou-message {
+  font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif;
+  font-style: italic;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: #b9cbff;
+  opacity: 0.8;
+  text-align: center;
+  margin: 20px 0 10px;
+  line-height: 1.4;
+}
+
+.armyCaption {
   position: absolute;
-  text-align: left;
-  margin-top: 10px;
+  bottom: 15px;
+  left: 20px;
   font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif;
   font-style: italic;
   font-size: 14px;
@@ -396,11 +413,13 @@ onMounted(async () => {
   transition: .2s ease-in-out;
   animation: fadeSlideDown 0.5s ease-out both;
 }
+
 .mike:hover {
   width: 300px;
   height: 300px;
   top: 0;
 }
+
 .shadow {
   position: absolute;
   width: 100%;
@@ -411,13 +430,16 @@ onMounted(async () => {
   filter: blur(10px);
   z-index: -5;
 }
+
 .quiz {
   align-self: center;
   animation: questionSlideIn 0.35s ease-out both;
 }
+
 .subscription-check {
   animation: fadeScaleUp 0.5s ease-out 0.2s both;
 }
+
 @media(max-width: 330px) {
   .container { padding: 5px; }
 }
