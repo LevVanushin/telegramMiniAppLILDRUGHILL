@@ -183,17 +183,9 @@ const removeActiveClass = (event) => {
   transition: 0.2s;
 }
 
-.option-button:hover {
-  background: linear-gradient(105deg, #2a3b7c 0%, #1f2a5a 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 0 #0b0f24;
-}
 
-.option-button:hover .option-index {
-  background: rgba(255, 255, 255, 0.25);
-  color: white;
-  transform: scale(1.02);
-}
+
+
 
 .option-button:active {
   transform: translateY(4px) !important;
