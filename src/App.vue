@@ -5,6 +5,7 @@
     
     <SubscriptionCheck 
       v-if="!subscriptionVerified && data.length > 0"
+      class="subscription-check"
       @verified="onSubscriptionVerified"
     />
 
@@ -23,6 +24,7 @@
       <quizCard 
         v-else-if="data.length > 0 && !quizFinished"
         class="quiz" 
+        :key="currentIndex"
         :title="currentQuestion?.question_text"
         :options="currentOptions"
         :correctOption="currentQuestion?.correct_option" 
