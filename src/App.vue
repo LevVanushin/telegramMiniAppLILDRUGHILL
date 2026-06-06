@@ -13,7 +13,6 @@
       
       <div v-else-if="quizCompleted" class="results">
         <h2>Викторина уже пройдена!</h2>
-        <p>Правильных ответов: {{ completedScore }} из {{ data.length }}</p>
         <p>Баллы: {{ completedScore * 5 }} из {{ data.length * 5 }}</p>
       </div>
       
@@ -29,7 +28,6 @@
       
       <div v-else-if="quizFinished" class="results">
         <h2>Викторина завершена!</h2>
-        <p>Правильных ответов: {{ score }} из {{ data.length }}</p>
         <p>Ваш балл: {{ score * 5 }} из {{ data.length * 5 }}</p>
       </div>
       
