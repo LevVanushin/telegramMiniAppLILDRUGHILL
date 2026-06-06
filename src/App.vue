@@ -406,8 +406,8 @@ onMounted(async () => {
 
 .mike {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 250px;
+  height: 250px;
   transition: .2s ease-in-out;
   animation: fadeSlideDown 0.5s ease-out both;
 }
