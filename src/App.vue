@@ -348,9 +348,20 @@ onMounted(async () => {
   border-radius: 32px;
   padding: 40px;
   text-align: center;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-weight: 700;
   color: white;
   max-width: 500px;
   animation: fadeScaleUp 0.5s ease-out 0.2s both;
+}
+
+.results h2 {
+  font-size: 30px;
+}
+
+.results p{
+  font-size: 23px;
+  font-weight: 600;
 }
 .mike {
   position: relative;
