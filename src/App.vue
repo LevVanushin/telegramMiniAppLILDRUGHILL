@@ -13,7 +13,8 @@
       
       <div v-else-if="quizCompleted" class="results">
         <h2>Викторина уже пройдена!</h2>
-        <p>Ваш результат: {{ completedScore * 5 }} из {{ data.length * 5 }}</p>
+        <p>Правильных ответов: {{ completedScore }} из {{ data.length }}</p>
+        <p>Баллы: {{ completedScore * 5 }} из {{ data.length * 5 }}</p>
       </div>
       
       <quizCard 
@@ -28,6 +29,7 @@
       
       <div v-else-if="quizFinished" class="results">
         <h2>Викторина завершена!</h2>
+        <p>Правильных ответов: {{ score }} из {{ data.length }}</p>
         <p>Ваш балл: {{ score * 5 }} из {{ data.length * 5 }}</p>
       </div>
       
@@ -58,7 +60,7 @@ const currentIndex = ref(0);
 const userAnswers = ref([]);
 const quizFinished = ref(false);
 const quizCompleted = ref(false);
-const completedScore = ref(0);
+const completedScore = ref(0); // сохранённый счёт из сессии
 
 // ====== Computed ======
 const currentQuestion = computed(() => data.value[currentIndex.value]);
@@ -97,7 +99,7 @@ function createSession() {
       currentIndex: 0,
       answers: [],
       isCompleted: false,
-      finalScore: 0,
+      finalScore: 0,      // количество правильных ответов
       savedAt: Date.now()
     }
   };
@@ -138,7 +140,7 @@ async function syncSessionToSupabase() {
   };
   localStorage.setItem('quiz_session', JSON.stringify(session));
 
-  // Отправляем в Supabase (без ожидания результата, фоном)
+  // Отправляем в Supabase (фоном)
   try {
     await supabase.from('user_sessions').upsert({
       telegram_id: telegramId,
@@ -146,6 +148,7 @@ async function syncSessionToSupabase() {
       created_at: new Date(session.createdAt).toISOString(),
       expires_at: new Date(session.expiresAt).toISOString(),
       quiz_progress: session.quizProgress,
+      total_score: score.value, // новое поле для быстрого доступа
       subscription_verified: localStorage.getItem('subscription_verified') === 'true',
       subscription_verified_at: localStorage.getItem('subscription_verified_at') 
         ? new Date(parseInt(localStorage.getItem('subscription_verified_at'))).toISOString() 
@@ -162,7 +165,6 @@ async function syncSessionToSupabase() {
 async function loadSessionFromSupabase() {
   const telegramId = getTelegramId();
   if (!telegramId) {
-    // Нет telegram_id – используем только localStorage
     const localSession = getLocalSession();
     if (localSession) {
       loadProgressFromSession(localSession);
@@ -187,7 +189,6 @@ async function loadSessionFromSupabase() {
 
     if (response.error) throw response.error;
     if (response.data) {
-      // Восстанавливаем сессию из Supabase
       const supabaseSession = response.data;
       const session = {
         id: supabaseSession.session_id,
@@ -216,7 +217,6 @@ async function loadSessionFromSupabase() {
     loadProgressFromSession(localSession);
     console.log('⚠️ Использованы данные из localStorage (fallback)');
   } else {
-    // Нет нигде – создаём новую
     createSession();
   }
 }
@@ -296,7 +296,6 @@ async function getData() {
     data.value = response.data || [];
     
     if (data.value.length > 0) {
-      // Загружаем сессию (сначала Supabase, потом local)
       await loadSessionFromSupabase();
     }
   } catch (err) {
@@ -310,7 +309,6 @@ async function getData() {
 // ====== Обработчики ======
 function onSubscriptionVerified() {
   subscriptionVerified.value = true;
-  // Сохраняем статус подписки и синхронизируем
   const telegramId = getTelegramId();
   if (telegramId) {
     localStorage.setItem('subscription_verified', 'true');
@@ -335,7 +333,7 @@ onMounted(async () => {
 </script>
 
 <style>
-/* ... твои стили ... */
+/* ===== Анимации появления ===== */
 @keyframes fadeSlideDown {
   from { opacity: 0; transform: translateY(-30px); }
   to { opacity: 1; transform: translateY(0); }
