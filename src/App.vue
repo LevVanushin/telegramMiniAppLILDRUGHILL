@@ -11,9 +11,10 @@
     <template v-else>
       <div v-if="loading" class="loading">Загрузка вопросов...</div>
       
-      <div v-else-if="quizCompleted" class="results">
+      <div v-else-if=quizCompleted class="results">
         <h2>Викторина уже пройдена!</h2>
-        <p>Баллы: {{ completedScore * 5 }} из {{ data.length * 5 }}</p>
+        <p class="score">Баллы: {{ completedScore * 5 }} из {{ data.length * 5 }}</p>
+        <p class="armyCaption">lildrughillarmy</p>
       </div>
       
       <quizCard 
@@ -27,8 +28,9 @@
       />
       
       <div v-else-if="quizFinished" class="results">
-        <h2>Викторина завершена!</h2>
-        <p>Ваш балл: {{ score * 5 }} из {{ data.length * 5 }}</p>
+        <h2>Викторина уже пройдена!</h2>
+        <p class="score">Баллы: {{ completedScore * 5 }} из {{ data.length * 5 }}</p>
+        <p class="armyCaption">lildrughillarmy</p>
       </div>
       
       <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
@@ -317,6 +319,9 @@ onMounted(async () => {
 </script>
 
 <style>
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
 @keyframes fadeSlideDown {
   from { opacity: 0; transform: translateY(-30px); }
   to { opacity: 1; transform: translateY(0); }
@@ -343,12 +348,15 @@ onMounted(async () => {
   font-size: 18px;
 }
 .error { color: red; }
+
 .results {
-  background: #1e2a5e;
+  /* background: #1e2a5e; */
+  background: linear-gradient(to bottom, #3b4fa7 0%, #172147 100%);
+
   border-radius: 32px;
   padding: 40px;
   text-align: center;
-  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-family: "Roboto", sans-serif; 
   font-weight: 700;
   color: white;
   max-width: 500px;
@@ -357,12 +365,29 @@ onMounted(async () => {
 
 .results h2 {
   font-size: 30px;
+  margin-bottom: 10px;
 }
 
-.results p{
+.score{
   font-size: 23px;
   font-weight: 600;
+  border-bottom: 1px dashed gray;
+  padding-bottom: 145px;
 }
+
+.armyCaption{
+  position: absolute;
+  text-align: left;
+  margin-top: 10px;
+  font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif;
+  font-style: italic;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: #b9cbff;
+  opacity: 0.8;
+}
+
 .mike {
   position: relative;
   top: 10px;
