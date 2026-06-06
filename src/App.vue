@@ -2,25 +2,20 @@
   <div class="container">
     <img src="./assets/mike.png" alt="" class="mike">
    
-    
     <SubscriptionCheck 
       v-if="!subscriptionVerified && data.length > 0"
       class="subscription-check"
       @verified="onSubscriptionVerified"
     />
 
-    
-    <!-- Если подписка подтверждена, показываем викторину -->
     <template v-else>
       <div v-if="loading" class="loading">Загрузка вопросов...</div>
       
-      <!-- Если викторина уже пройдена - показываем результат -->
       <div v-else-if="quizCompleted" class="results">
         <h2>Викторина уже пройдена!</h2>
-        <p>Ваш результат: {{ completedScore * 5 }} из {{ data.length * 5}}</p>
+        <p>Ваш результат: {{ completedScore * 5 }} из {{ data.length * 5 }}</p>
       </div>
       
-      <!-- Показываем текущий вопрос -->
       <quizCard 
         v-else-if="data.length > 0 && !quizFinished"
         class="quiz" 
@@ -31,7 +26,6 @@
         @select="handleAnswer"
       />
       
-      <!-- Результаты после прохождения -->
       <div v-else-if="quizFinished" class="results">
         <h2>Викторина завершена!</h2>
         <p>Ваш балл: {{ score * 5 }} из {{ data.length * 5 }}</p>
@@ -47,10 +41,13 @@
 <script setup>
 import { supabase } from "./lib/supabase.js";
 import quizCard from "./components/quizCard.vue";
-import { onMounted, ref, computed } from "vue";
 import SubscriptionCheck from "./components/SubscriptionCheck.vue";
-import { defineProps, defineEmits } from 'vue';
+import { onMounted, ref, computed } from "vue";
 
+// ====== Конфигурация ======
+const SYNC_TIMEOUT = 30000; // 30 секунд таймаут на запрос к Supabase
+
+// ====== Реактивные данные ======
 const data = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
@@ -63,10 +60,8 @@ const quizFinished = ref(false);
 const quizCompleted = ref(false);
 const completedScore = ref(0);
 
-// Текущий вопрос
+// ====== Computed ======
 const currentQuestion = computed(() => data.value[currentIndex.value]);
-
-// Опции для текущего вопроса
 const currentOptions = computed(() => {
   if (!currentQuestion.value) return [];
   return [
@@ -76,79 +71,188 @@ const currentOptions = computed(() => {
     currentQuestion.value.option_d
   ];
 });
+const score = computed(() => userAnswers.value.filter(a => a.isCorrect).length);
 
-// Количество правильных ответов
-const score = computed(() => {
-  return userAnswers.value.filter(a => a.isCorrect).length;
-});
+// ====== Работа с сессией (localStorage + Supabase) ======
 
-// Функции сессии (объединены с прогрессом)
+// Получаем telegram_id из URL (передаётся ботом)
+function getTelegramId() {
+  const urlParams = new URLSearchParams(window.location.search);
+  let id = urlParams.get('user_id');
+  if (id) {
+    localStorage.setItem('telegram_id', id);
+    return parseInt(id);
+  }
+  const saved = localStorage.getItem('telegram_id');
+  return saved ? parseInt(saved) : null;
+}
+
+// Создание новой сессии
 function createSession() {
   const session = {
     id: crypto.randomUUID(),
     createdAt: Date.now(),
-    expiresAt: Date.now() + (30 * 60000), // 60 секунд
+    expiresAt: Date.now() + (30 * 60000), // 30 минут
     quizProgress: {
       currentIndex: 0,
       answers: [],
       isCompleted: false,
-      finalScore: 0
+      finalScore: 0,
+      savedAt: Date.now()
     }
   };
   localStorage.setItem('quiz_session', JSON.stringify(session));
   return session;
 }
 
-function getSession() {
+// Получение сессии из localStorage (с проверкой истечения)
+function getLocalSession() {
   const raw = localStorage.getItem('quiz_session');
-  if (!raw) return createSession();
-  
+  if (!raw) return null;
   const session = JSON.parse(raw);
-  
-  // Проверяем истекла ли сессия
   if (Date.now() > session.expiresAt) {
-    console.log('⏰ Сессия истекла, данные очищены');
     localStorage.removeItem('quiz_session');
-    return createSession();
+    return null;
   }
-  
   return session;
 }
 
-// Сохранение прогресса (в сессию)
-function saveQuizProgress() {
-  const session = getSession();
+// Сохранение сессии в localStorage и Supabase (синхронизация)
+async function syncSessionToSupabase() {
+  const session = getLocalSession();
+  if (!session) return;
+
+  const telegramId = getTelegramId();
+  if (!telegramId) {
+    console.warn('Нет telegram_id, синхронизация с Supabase невозможна');
+    return;
+  }
+
+  // Обновим данные в сессии перед отправкой
   session.quizProgress = {
     currentIndex: currentIndex.value,
     answers: userAnswers.value,
-    isCompleted: quizFinished.value,
+    isCompleted: quizFinished.value || quizCompleted.value,
     finalScore: score.value,
     savedAt: Date.now()
   };
   localStorage.setItem('quiz_session', JSON.stringify(session));
+
+  // Отправляем в Supabase (без ожидания результата, фоном)
+  try {
+    await supabase.from('user_sessions').upsert({
+      telegram_id: telegramId,
+      session_id: session.id,
+      created_at: new Date(session.createdAt).toISOString(),
+      expires_at: new Date(session.expiresAt).toISOString(),
+      quiz_progress: session.quizProgress,
+      subscription_verified: localStorage.getItem('subscription_verified') === 'true',
+      subscription_verified_at: localStorage.getItem('subscription_verified_at') 
+        ? new Date(parseInt(localStorage.getItem('subscription_verified_at'))).toISOString() 
+        : null,
+      last_active: new Date().toISOString()
+    }, { onConflict: 'telegram_id' });
+    console.log('✅ Сессия синхронизирована с Supabase');
+  } catch (err) {
+    console.warn('Ошибка синхронизации с Supabase:', err);
+  }
 }
 
-// Загрузка прогресса (из сессии)
-function loadQuizProgress() {
-  const session = getSession();
+// Загрузка сессии: сначала пытаемся Supabase (таймаут), потом fallback на localStorage
+async function loadSessionFromSupabase() {
+  const telegramId = getTelegramId();
+  if (!telegramId) {
+    // Нет telegram_id – используем только localStorage
+    const localSession = getLocalSession();
+    if (localSession) {
+      loadProgressFromSession(localSession);
+    }
+    return;
+  }
+
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('Timeout')), SYNC_TIMEOUT);
+  });
+
+  const fetchPromise = supabase
+    .from('user_sessions')
+    .select('*')
+    .eq('telegram_id', telegramId)
+    .maybeSingle();
+
+  try {
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
+    clearTimeout(timeoutId);
+
+    if (response.error) throw response.error;
+    if (response.data) {
+      // Восстанавливаем сессию из Supabase
+      const supabaseSession = response.data;
+      const session = {
+        id: supabaseSession.session_id,
+        createdAt: new Date(supabaseSession.created_at).getTime(),
+        expiresAt: new Date(supabaseSession.expires_at).getTime(),
+        quizProgress: supabaseSession.quiz_progress
+      };
+      localStorage.setItem('quiz_session', JSON.stringify(session));
+      if (supabaseSession.subscription_verified) {
+        localStorage.setItem('subscription_verified', 'true');
+        localStorage.setItem('subscription_user_id', telegramId);
+        localStorage.setItem('subscription_verified_at', new Date(supabaseSession.subscription_verified_at).getTime());
+      }
+      loadProgressFromSession(session);
+      console.log('✅ Данные загружены из Supabase');
+      return;
+    }
+  } catch (err) {
+    clearTimeout(timeoutId);
+    console.warn('Не удалось загрузить сессию из Supabase (таймаут или ошибка):', err);
+  }
+
+  // Fallback: загружаем из localStorage
+  const localSession = getLocalSession();
+  if (localSession) {
+    loadProgressFromSession(localSession);
+    console.log('⚠️ Использованы данные из localStorage (fallback)');
+  } else {
+    // Нет нигде – создаём новую
+    createSession();
+  }
+}
+
+// Применяем данные сессии к состоянию викторины
+function loadProgressFromSession(session) {
   const progress = session.quizProgress;
-  
   if (progress.isCompleted) {
     quizCompleted.value = true;
     completedScore.value = progress.finalScore || 0;
-    return true;
+  } else {
+    currentIndex.value = progress.currentIndex || 0;
+    userAnswers.value = progress.answers || [];
+    if (currentIndex.value >= data.value.length && data.value.length > 0) {
+      quizFinished.value = true;
+    }
   }
-  
-  currentIndex.value = progress.currentIndex;
-  userAnswers.value = progress.answers;
-  
-  if (currentIndex.value >= data.value.length && data.value.length > 0) {
-    quizFinished.value = true;
-  }
-  return true;
 }
 
-// Обработчик выбора ответа
+// Сохранение прогресса (вызывается при изменениях)
+function saveQuizProgress() {
+  const session = getLocalSession();
+  if (!session) return;
+  session.quizProgress = {
+    currentIndex: currentIndex.value,
+    answers: userAnswers.value,
+    isCompleted: quizFinished.value || quizCompleted.value,
+    finalScore: score.value,
+    savedAt: Date.now()
+  };
+  localStorage.setItem('quiz_session', JSON.stringify(session));
+  // Фоновая синхронизация с Supabase
+  syncSessionToSupabase().catch(e => console.warn(e));
+}
+
+// ====== Логика викторины ======
 function handleAnswer(selectedText) {
   if (!currentQuestion.value) return;
   
@@ -179,86 +283,71 @@ function handleAnswer(selectedText) {
   }
 }
 
+// ====== Загрузка вопросов ======
 async function getData() {
   try {
     loading.value = true;
-    
     const response = await supabase
       .from('questions')
       .select('*')
       .order('id');
     
-    if (response.error) {
-      errorMessage.value = response.error.message;
-    }
-  
+    if (response.error) throw new Error(response.error.message);
     data.value = response.data || [];
     
     if (data.value.length > 0) {
-      loadQuizProgress();
+      // Загружаем сессию (сначала Supabase, потом local)
+      await loadSessionFromSupabase();
     }
-    
-  } catch (error) {
-    console.error('Ошибка:', error);
-    errorMessage.value = error.message;
+  } catch (err) {
+    console.error(err);
+    errorMessage.value = err.message;
   } finally {
     loading.value = false;
   }
 }
 
+// ====== Обработчики ======
 function onSubscriptionVerified() {
   subscriptionVerified.value = true;
+  // Сохраняем статус подписки и синхронизируем
+  const telegramId = getTelegramId();
+  if (telegramId) {
+    localStorage.setItem('subscription_verified', 'true');
+    localStorage.setItem('subscription_verified_at', Date.now());
+    syncSessionToSupabase();
+  }
 }
 
 function clearStorage() {
   localStorage.removeItem('quiz_session');
-  alert('✅ Сессия очищена! Страница перезагрузится.');
+  localStorage.removeItem('telegram_id');
+  localStorage.removeItem('subscription_verified');
+  localStorage.removeItem('subscription_verified_at');
+  alert('✅ Все данные очищены! Страница перезагрузится.');
   window.location.reload();
 }
 
+// ====== Lifecycle ======
 onMounted(async () => {
-  getSession();
-
   await getData();
-
 });
 </script>
 
 <style>
-/* ===== Анимации появления ===== */
+/* ... твои стили ... */
 @keyframes fadeSlideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes fadeScaleUp {
-  from {
-    opacity: 0;
-    transform: translateY(40px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
-
 @keyframes questionSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(40px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(40px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
-
 .container {
   display: flex;
   flex-direction: column;
@@ -267,17 +356,12 @@ onMounted(async () => {
   gap: 30px;
   padding: 15px 30px 20px 30px;
 }
-
 .loading, .error {
   text-align: center;
   padding: 20px;
   font-size: 18px;
 }
-
-.error {
-  color: red;
-}
-
+.error { color: red; }
 .results {
   background: #1e2a5e;
   border-radius: 32px;
@@ -287,24 +371,19 @@ onMounted(async () => {
   max-width: 500px;
   animation: fadeScaleUp 0.5s ease-out 0.2s both;
 }
-
 .mike {
   position: relative;
   top: 10px;
   width: 250px;
   height: 250px;
-  transition-property: width, height, top;
-  transition-duration: .2s;
-  transition-timing-function: ease-in-out;
+  transition: .2s ease-in-out;
   animation: fadeSlideDown 0.5s ease-out both;
 }
-
 .mike:hover {
   width: 300px;
   height: 300px;
   top: 0;
 }
-
 .shadow {
   position: absolute;
   width: 100%;
@@ -315,21 +394,14 @@ onMounted(async () => {
   filter: blur(10px);
   z-index: -5;
 }
-
-/* Карточка вопроса — появление при загрузке и при каждом переключении */
 .quiz {
   align-self: center;
   animation: questionSlideIn 0.35s ease-out both;
 }
-
-/* SubscriptionCheck — появление с той же логикой, что и карточка */
 .subscription-check {
   animation: fadeScaleUp 0.5s ease-out 0.2s both;
 }
-
 @media(max-width: 330px) {
-  .container {
-    padding: 5px;
-  }
+  .container { padding: 5px; }
 }
 </style>
