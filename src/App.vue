@@ -32,7 +32,7 @@
         <h2>Викторина завершена!</h2>
         <p class="score">Баллы: {{ score * 5 }} из {{ data.length * 5 }}</p>
         <p class="thankyou-message">Благодарим за прохождение. Желаем удачи всем на реальных экзаменах!</p>
-        <p class="armyCaption">lildrughillarmy</p>
+        <p class="armyCaption">lildrughillarmy - off fun page</p>
       </div>
       
       <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
