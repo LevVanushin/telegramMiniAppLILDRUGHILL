@@ -49,7 +49,7 @@ import { onMounted, ref, computed } from "vue";
 
 // ====== Конфигурация ======
 const SYNC_TIMEOUT = 30000;
-const SESSION_TTL = 24 * 60 * 60 * 1000; 
+const SESSION_TTL = 2 * 24 * 60 * 60 * 1000; 
 
 // ====== Реактивные данные ======
 const data = ref([]);
