@@ -8,7 +8,7 @@
 
     <h1 class="main-title">Подпишись на канал</h1>
     <p class="subtitle">обязательное условие</p>
-    <p class="description">Для прохождения викторины необходимо подписаться на наш Telegram канал</p>
+    <p class="description">Для прохождения экзамена необходимо подписаться на наш Telegram канал</p>
 
     <div class="options-list">
       <button class="option-button subscribe-btn" @click="openTelegramLink">
