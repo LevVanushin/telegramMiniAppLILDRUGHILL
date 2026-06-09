@@ -49,7 +49,7 @@ import { onMounted, ref, computed } from "vue";
 
 // ====== Конфигурация ======
 const SYNC_TIMEOUT = 30000;
-const SESSION_TTL = 2 * 24 * 60 * 60 * 1000; 
+const SESSION_TTL = 2 * 24 * 60 * 60 * 1000;
 
 // ====== Реактивные данные ======
 const data = ref([]);
@@ -88,6 +88,14 @@ function getTelegramId() {
   return saved ? parseInt(saved) : null;
 }
 
+// ====== Парсинг timestamptz из Supabase ======
+function parseSupabaseDate(dateStr) {
+  if (!dateStr) return NaN;
+  // Supabase timestamptz может вернуть "2024-01-15 10:30:00+00" без T
+  return new Date(dateStr.replace(' ', 'T')).getTime();
+}
+
+// ====== Очистка истёкшей сессии ======
 async function clearExpiredSession(telegramId = null) {
   // 1. Чистим localStorage
   localStorage.removeItem('quiz_session');
@@ -143,10 +151,10 @@ function getLocalSession() {
 
 function loadProgressFromSession(session) {
   const progress = session.quizProgress;
-  
+
   userAnswers.value = progress.answers || [];
   currentIndex.value = progress.currentIndex || 0;
-  
+
   if (progress.isCompleted) {
     quizCompleted.value = true;
     completedScore.value = progress.finalScore || 0;
@@ -160,7 +168,7 @@ function loadProgressFromSession(session) {
       quizFinished.value = false;
     }
   }
-  
+
   if (!quizCompleted.value && userAnswers.value.length > 0) {
     const correctCount = userAnswers.value.filter(a => a.isCorrect).length;
     if (correctCount !== progress.finalScore) {
@@ -169,14 +177,14 @@ function loadProgressFromSession(session) {
       localStorage.setItem('quiz_session', JSON.stringify(session));
     }
   }
-  
+
   console.log(`📊 Загружено: ответов ${userAnswers.value.length}, правильных ${score.value}, завершена: ${quizCompleted.value}`);
 }
 
 function saveQuizProgress() {
   const session = getLocalSession();
   if (!session) return;
-  
+
   session.quizProgress = {
     currentIndex: currentIndex.value,
     answers: userAnswers.value,
@@ -186,14 +194,14 @@ function saveQuizProgress() {
   };
   session.expiresAt = Date.now() + SESSION_TTL;
   localStorage.setItem('quiz_session', JSON.stringify(session));
-  
+
   syncSessionToSupabase().catch(e => console.warn(e));
 }
 
 async function syncSessionToSupabase() {
   const session = getLocalSession();
   if (!session) return;
-  
+
   const telegramId = getTelegramId();
   if (!telegramId) return;
 
@@ -224,13 +232,13 @@ async function syncSessionToSupabase() {
 
 async function loadSessionFromSupabase() {
   const telegramId = getTelegramId();
-  
+
+  // ── Блок без telegramId ──────────────────────────────────────────
   if (!telegramId) {
     const local = getLocalSession();
     if (local) {
-      // Проверяем истечение локальной сессии
       if (Date.now() > local.expiresAt) {
-        console.warn('⏰ Локальная сессия истекла, создаём новую');
+        console.warn('⏰ Локальная сессия истекла');
         await clearExpiredSession(null);
         createSession();
         return;
@@ -242,6 +250,7 @@ async function loadSessionFromSupabase() {
     return;
   }
 
+  // ── Запрос к Supabase ────────────────────────────────────────────
   let timeoutId;
   const timeoutPromise = new Promise((_, reject) => {
     timeoutId = setTimeout(() => reject(new Error('Timeout')), SYNC_TIMEOUT);
@@ -265,20 +274,29 @@ async function loadSessionFromSupabase() {
     console.warn('Supabase timeout/error, используем localStorage');
   }
 
-  if (supabaseData && supabaseData.quiz_progress) {
-    const expiresAt = new Date(supabaseData.expires_at).getTime();
+  // ── Supabase вернул данные ───────────────────────────────────────
+  if (supabaseData) {
+    const expiresAt = parseSupabaseDate(supabaseData.expires_at);
 
-    // Проверяем истечение сессии из Supabase
-    if (Date.now() > expiresAt) {
-      console.warn('⏰ Сессия из Supabase истекла, удаляем и создаём новую');
+    // Защита от NaN если формат сломан
+    if (isNaN(expiresAt)) {
+      console.warn('⚠️ Не удалось распарсить expires_at:', supabaseData.expires_at);
       await clearExpiredSession(telegramId);
       createSession();
       return;
     }
 
+    if (Date.now() > expiresAt) {
+      console.warn('⏰ Сессия из Supabase истекла — сбрасываем всё и стартуем заново');
+      await clearExpiredSession(telegramId);
+      createSession();
+      return;
+    }
+
+    // Сессия валидна — грузим
     const session = {
       id: supabaseData.session_id,
-      createdAt: new Date(supabaseData.created_at).getTime(),
+      createdAt: parseSupabaseDate(supabaseData.created_at),
       expiresAt: expiresAt,
       quizProgress: supabaseData.quiz_progress
     };
@@ -288,11 +306,11 @@ async function loadSessionFromSupabase() {
     return;
   }
 
+  // ── Supabase недоступен — fallback на localStorage ───────────────
   const localSession = getLocalSession();
   if (localSession) {
-    // Проверяем истечение локальной сессии (fallback)
     if (Date.now() > localSession.expiresAt) {
-      console.warn('⏰ Локальная сессия (fallback) истекла, создаём новую');
+      console.warn('⏰ Локальная сессия (fallback) истекла');
       await clearExpiredSession(telegramId);
       createSession();
       return;
@@ -308,17 +326,17 @@ async function loadSessionFromSupabase() {
 // ====== Логика викторины ======
 function handleAnswer(selectedText) {
   if (!currentQuestion.value) return;
-  
+
   const optionMap = {
     [currentQuestion.value.option_a]: 'A',
     [currentQuestion.value.option_b]: 'B',
     [currentQuestion.value.option_c]: 'C',
     [currentQuestion.value.option_d]: 'D'
   };
-  
+
   const selectedLetter = optionMap[selectedText];
   const isCorrect = (selectedLetter === currentQuestion.value.correct_option);
-  
+
   userAnswers.value.push({
     questionId: currentQuestion.value.id,
     questionText: currentQuestion.value.question_text,
@@ -326,7 +344,7 @@ function handleAnswer(selectedText) {
     isCorrect: isCorrect,
     timestamp: Date.now()
   });
-  
+
   if (currentIndex.value + 1 < data.value.length) {
     currentIndex.value++;
     saveQuizProgress();
@@ -344,10 +362,10 @@ async function getData() {
       .from('questions')
       .select('*')
       .order('id');
-    
+
     if (response.error) throw new Error(response.error.message);
     data.value = response.data || [];
-    
+
     if (data.value.length > 0) {
       await loadSessionFromSupabase();
     }
@@ -408,7 +426,7 @@ onMounted(async () => {
   border-radius: 32px;
   padding: 40px;
   text-align: center;
-  font-family: "Roboto", sans-serif; 
+  font-family: "Roboto", sans-serif;
   font-weight: 700;
   color: white;
   max-width: 500px;
