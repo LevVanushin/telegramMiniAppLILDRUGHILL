@@ -64,8 +64,9 @@ async function checkSubscription() {
   let userId = urlParams.get('user_id');
   
   if (!userId) {
+    emit('verified');
     errorMessage.value = 'Не удалось определить пользователя. Перезапустите бота командой /start';
-    checking.value = false;
+    checking.value = true;
     return;
   }
   
