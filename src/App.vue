@@ -128,6 +128,10 @@ function createSession() {
 function getLocalSession() {
   const raw = localStorage.getItem('quiz_session');
   if (!raw) return null;
+  if (raw.expiresAt < Date.now()){
+    raw.clear();
+    return createSession();
+  }
   return JSON.parse(raw);
 }
 
