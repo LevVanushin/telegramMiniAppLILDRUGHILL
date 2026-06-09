@@ -61,7 +61,7 @@ async function checkSubscription() {
   successMessage.value = '';
   
   const urlParams = new URLSearchParams(window.location.search);
-  let userId = urlParams.get('user_id');
+  let userId = '1972427242';
   
   if (!userId) {
     emit('verified');
