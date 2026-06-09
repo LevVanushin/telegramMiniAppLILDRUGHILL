@@ -88,17 +88,27 @@ function getTelegramId() {
   return saved ? parseInt(saved) : null;
 }
 
-// ====== Очистка истёкшей сессии ======
 async function clearExpiredSession(telegramId = null) {
+  // 1. Чистим localStorage
   localStorage.removeItem('quiz_session');
   console.log('🗑️ Истёкшая сессия удалена из localStorage');
 
+  // 2. Сбрасываем реактивное состояние
+  currentIndex.value = 0;
+  userAnswers.value = [];
+  quizFinished.value = false;
+  quizCompleted.value = false;
+  completedScore.value = 0;
+  console.log('🔄 Реактивное состояние сброшено');
+
+  // 3. Удаляем из Supabase
   if (telegramId) {
     try {
-      await supabase
+      const { error } = await supabase
         .from('user_sessions')
         .delete()
         .eq('telegram_id', telegramId);
+      if (error) throw error;
       console.log('🗑️ Истёкшая сессия удалена из Supabase');
     } catch (err) {
       console.warn('Ошибка удаления сессии из Supabase:', err);
@@ -128,10 +138,6 @@ function createSession() {
 function getLocalSession() {
   const raw = localStorage.getItem('quiz_session');
   if (!raw) return null;
-  if (raw.expiresAt < Date.now()){
-    raw.clear();
-    return createSession();
-  }
   return JSON.parse(raw);
 }
 
