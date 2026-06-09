@@ -88,6 +88,24 @@ function getTelegramId() {
   return saved ? parseInt(saved) : null;
 }
 
+// ====== Очистка истёкшей сессии ======
+async function clearExpiredSession(telegramId = null) {
+  localStorage.removeItem('quiz_session');
+  console.log('🗑️ Истёкшая сессия удалена из localStorage');
+
+  if (telegramId) {
+    try {
+      await supabase
+        .from('user_sessions')
+        .delete()
+        .eq('telegram_id', telegramId);
+      console.log('🗑️ Истёкшая сессия удалена из Supabase');
+    } catch (err) {
+      console.warn('Ошибка удаления сессии из Supabase:', err);
+    }
+  }
+}
+
 // ====== Работа с сессией ======
 function createSession() {
   const session = {
@@ -133,7 +151,6 @@ function loadProgressFromSession(session) {
     }
   }
   
-  // Синхронизация finalScore с реальными ответами
   if (!quizCompleted.value && userAnswers.value.length > 0) {
     const correctCount = userAnswers.value.filter(a => a.isCorrect).length;
     if (correctCount !== progress.finalScore) {
@@ -201,6 +218,13 @@ async function loadSessionFromSupabase() {
   if (!telegramId) {
     const local = getLocalSession();
     if (local) {
+      // Проверяем истечение локальной сессии
+      if (Date.now() > local.expiresAt) {
+        console.warn('⏰ Локальная сессия истекла, создаём новую');
+        await clearExpiredSession(null);
+        createSession();
+        return;
+      }
       loadProgressFromSession(local);
     } else {
       createSession();
@@ -232,10 +256,20 @@ async function loadSessionFromSupabase() {
   }
 
   if (supabaseData && supabaseData.quiz_progress) {
+    const expiresAt = new Date(supabaseData.expires_at).getTime();
+
+    // Проверяем истечение сессии из Supabase
+    if (Date.now() > expiresAt) {
+      console.warn('⏰ Сессия из Supabase истекла, удаляем и создаём новую');
+      await clearExpiredSession(telegramId);
+      createSession();
+      return;
+    }
+
     const session = {
       id: supabaseData.session_id,
       createdAt: new Date(supabaseData.created_at).getTime(),
-      expiresAt: new Date(supabaseData.expires_at).getTime(),
+      expiresAt: expiresAt,
       quizProgress: supabaseData.quiz_progress
     };
     localStorage.setItem('quiz_session', JSON.stringify(session));
@@ -246,6 +280,13 @@ async function loadSessionFromSupabase() {
 
   const localSession = getLocalSession();
   if (localSession) {
+    // Проверяем истечение локальной сессии (fallback)
+    if (Date.now() > localSession.expiresAt) {
+      console.warn('⏰ Локальная сессия (fallback) истекла, создаём новую');
+      await clearExpiredSession(telegramId);
+      createSession();
+      return;
+    }
     loadProgressFromSession(localSession);
     console.log('⚠️ Использованы данные из localStorage (fallback)');
     syncSessionToSupabase().catch(e => console.warn(e));
