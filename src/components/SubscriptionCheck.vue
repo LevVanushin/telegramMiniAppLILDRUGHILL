@@ -35,7 +35,7 @@ const CHANNEL_USERNAME = 'lildrughillarmy';
 const CHANNEL_LINK = 'https://t.me/lildrughillarmy';
 
 // Берём токен из переменных окружения Vite
-const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+const BOT_TOKEN = "8962179048:AAEyj9v4RNv-dbyQKd1s3SLhUYdj1vP7cGw";
 
 const checking = ref(false);
 const errorMessage = ref('');
