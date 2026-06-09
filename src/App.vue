@@ -8,7 +8,7 @@
     />
 
     <template v-else>
-      <div v-if="loading" class="loading">Загрузка вопросов...</div>
+      <div v-if="loading" class="loading">Загрузка YTN FSDFSDFSDFSD вопросов...</div>
       
       <div v-else-if="quizCompleted" class="results">
         <h2>Экзамен уже пройден!</h2>
