@@ -18,7 +18,7 @@
         <p class="armyCaption">lildrughill army - off fan page</p>
       </div>
 
-      <div v-if="sert" class="results">
+      <div v-if="sertNick" class="results">
         <p>Введи ник:</p>
         <input type="input">
       </div>
@@ -71,9 +71,10 @@ const userAnswers = ref([]);
 const quizFinished = ref(false);
 const quizCompleted = ref(false);
 const completedScore = ref(0);
-
+const sertNick = ref(false)
 function sert(){
-  return true
+  sertNick.value = true;
+  return 
 }
 
 // ====== ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ — данные сессии из Supabase ======
