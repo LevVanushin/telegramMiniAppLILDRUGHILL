@@ -590,7 +590,6 @@ onMounted(async () => {
   margin-top: 10px;
 }
 
-
 .button_sert:disabled {
   opacity: 0.5;
   cursor: not-allowed;
