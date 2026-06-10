@@ -8,16 +8,20 @@
     />
 
     <template v-else>
-      <div v-if="loading" class="loading">Загрузка вопросов...</div>
+      <div v-if="loading" class="loading">Загрузка YTN FSDFSDFSDFSD вопросов...</div>
       
       <div v-else-if="quizCompleted" class="results">
         <h2>Экзамен уже пройден!</h2>
-        <p class="score">Баллы: {{ completedScore * 5 }} из {{ data.length * 5 }}</p>
+        <p class="score">Баллы: {{ progress.finalScore * 5 }} из {{ data.length * 5 }}</p>
         <p class="thankyou-message">Благодарим за прохождение. Желаем удачи всем на реальных экзаменах!</p>
-        <button v-if="(completedScore * 5) >= 60" class="button_sert" @click="openDiplomaModal">Получить диплом</button>
+        <button v-if="(progress.finalScore * 5) >= 60" class="button_sert" @click="openDiplomaModal">Получить диплом</button>
+        <div v-if="sertNick" class="results">
+          <p>Введи ник:</p>
+          <input type="input">
+        </div>
         <p class="armyCaption">lildrughill army - off fan page</p>
       </div>
-      
+
       <quizCard 
         v-else-if="data.length > 0 && !quizFinished"
         class="quiz" 
@@ -44,13 +48,12 @@
     <div v-if="showDiplomaModal" class="modal-overlay" @click.self="closeDiplomaModal">
       <div class="results modal-content">
         <h2>Получение диплома</h2>
-        <p class="score">Ваш результат: {{ (score * 5) || (completedScore * 5) }} баллов</p>
         <div class="input-group">
           <label>Введите ваш ник в Telegram:</label>
           <input 
             type="text" 
             v-model="nickname" 
-            placeholder="например: @lildrughill"
+            placeholder="например: Михаил Струев"
             class="nick-input"
           />
         </div>
@@ -86,10 +89,20 @@ const userAnswers = ref([]);
 const quizFinished = ref(false);
 const quizCompleted = ref(false);
 const completedScore = ref(0);
+const sertNick = ref(false);
+
+function sert() {
+  sertNick.value = true;
+  return;
+}
 
 // Модальное окно диплома
 const showDiplomaModal = ref(false);
 const nickname = ref('');
+
+// ====== ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ — данные сессии из Supabase ======
+const supabaseSessionData = ref(null);
+window.supabaseSessionData = supabaseSessionData;
 
 // ====== Computed ======
 const currentQuestion = computed(() => data.value[currentIndex.value]);
@@ -108,7 +121,9 @@ const score = computed(() => userAnswers.value.filter(a => a.isCorrect).length);
 function getTelegramId() {
   const urlParams = new URLSearchParams(window.location.search);
   let id = urlParams.get('user_id');
-  if (id) return parseInt(id);
+  if (id) {
+    return parseInt(id);
+  }
   return null;
 }
 
@@ -125,10 +140,16 @@ async function clearExpiredSession(telegramId = null) {
   quizFinished.value = false;
   quizCompleted.value = false;
   completedScore.value = 0;
+  supabaseSessionData.value = null;
   console.log('🔄 Реактивное состояние сброшено');
+
   if (telegramId) {
     try {
-      await supabase.from('user_sessions').delete().eq('telegram_id', telegramId);
+      const { error } = await supabase
+        .from('user_sessions')
+        .delete()
+        .eq('telegram_id', telegramId);
+      if (error) throw error;
       console.log('🗑️ Истёкшая сессия удалена из Supabase');
     } catch (err) {
       console.warn('Ошибка удаления сессии из Supabase:', err);
@@ -137,10 +158,29 @@ async function clearExpiredSession(telegramId = null) {
 }
 
 // ====== Работа с сессией ======
+function createSessionObject() {
+  return {
+    id: crypto.randomUUID(),
+    createdAt: Date.now(),
+    expiresAt: Date.now() + SESSION_TTL,
+    quizProgress: {
+      currentIndex: 0,
+      answers: [],
+      isCompleted: false,
+      finalScore: 0,
+      savedAt: Date.now()
+    }
+  };
+}
+
+let progress;
+
 function loadProgressFromSession(session) {
-  const progress = session.quizProgress;
+  progress = session.quizProgress;
+
   userAnswers.value = progress.answers || [];
   currentIndex.value = progress.currentIndex || 0;
+
   if (progress.isCompleted) {
     quizCompleted.value = true;
     completedScore.value = progress.finalScore || 0;
@@ -150,24 +190,31 @@ function loadProgressFromSession(session) {
     completedScore.value = 0;
     if (currentIndex.value >= data.value.length && data.value.length > 0) {
       quizFinished.value = true;
+      quizCompleted.value = false;
     } else {
       quizFinished.value = false;
     }
   }
+
   console.log(`📊 Загружено: ответов ${userAnswers.value.length}, правильных ${score.value}, завершена: ${quizCompleted.value}`);
 }
 
 async function saveQuizProgress() {
   const telegramId = getTelegramId();
   if (!telegramId) return;
+
   try {
-    const { data: existing } = await supabase
+    const { data: existing, error: fetchError } = await supabase
       .from('user_sessions')
       .select('session_id, created_at')
       .eq('telegram_id', telegramId)
       .maybeSingle();
+
+    if (fetchError) throw fetchError;
+
     const sessionId = existing?.session_id || crypto.randomUUID();
     const createdAt = existing?.created_at || new Date().toISOString();
+
     const quizProgress = {
       currentIndex: currentIndex.value,
       answers: userAnswers.value,
@@ -175,6 +222,7 @@ async function saveQuizProgress() {
       finalScore: score.value,
       savedAt: Date.now()
     };
+
     await supabase.from('user_sessions').upsert({
       telegram_id: telegramId,
       session_id: sessionId,
@@ -184,6 +232,7 @@ async function saveQuizProgress() {
       total_score: score.value,
       last_active: new Date().toISOString()
     }, { onConflict: 'telegram_id' });
+
     console.log('✅ Прогресс сохранён в Supabase');
   } catch (err) {
     console.warn('Ошибка сохранения прогресса в Supabase:', err);
@@ -192,55 +241,80 @@ async function saveQuizProgress() {
 
 async function loadSessionFromSupabase() {
   const telegramId = getTelegramId();
-  if (!telegramId) return;
+
+  if (!telegramId) {
+    console.warn('⚠️ Telegram ID не найден, сессия не загружена');
+    return;
+  }
+
   let timeoutId;
   const timeoutPromise = new Promise((_, reject) => {
     timeoutId = setTimeout(() => reject(new Error('Timeout')), SYNC_TIMEOUT);
   });
+
   const fetchPromise = supabase
     .from('user_sessions')
     .select('*')
     .eq('telegram_id', telegramId)
     .maybeSingle();
-  let supabaseData = null;
+
   try {
     const response = await Promise.race([fetchPromise, timeoutPromise]);
     clearTimeout(timeoutId);
-    if (!response.error && response.data) supabaseData = response.data;
+    if (!response.error && response.data) {
+      supabaseSessionData.value = response.data;
+    }
   } catch (err) {
     clearTimeout(timeoutId);
     console.warn('Supabase timeout/error, сессия не загружена');
   }
-  if (supabaseData) {
-    const expiresAt = parseSupabaseDate(supabaseData.expires_at);
-    if (isNaN(expiresAt) || Date.now() > expiresAt) {
+
+  if (supabaseSessionData.value) {
+    const expiresAt = parseSupabaseDate(supabaseSessionData.value.expires_at);
+
+    if (isNaN(expiresAt)) {
+      console.warn('⚠️ Не удалось распарсить expires_at:', supabaseSessionData.value.expires_at);
       await clearExpiredSession(telegramId);
       return;
     }
+
+    if (Date.now() > expiresAt) {
+      console.warn('⏰ Сессия из Supabase истекла — сбрасываем всё и стартуем заново');
+      await clearExpiredSession(telegramId);
+      return;
+    }
+
     const session = {
-      id: supabaseData.session_id,
-      createdAt: parseSupabaseDate(supabaseData.created_at),
+      id: supabaseSessionData.value.session_id,
+      createdAt: parseSupabaseDate(supabaseSessionData.value.created_at),
       expiresAt: expiresAt,
-      quizProgress: supabaseData.quiz_progress
+      quizProgress: supabaseSessionData.value.quiz_progress
     };
     loadProgressFromSession(session);
     console.log('✅ Данные загружены из Supabase');
     return;
   }
+
   console.log('ℹ️ Сессия в Supabase не найдена, стартуем заново');
 }
 
 // ====== Логика викторины ======
 function handleAnswer(selectedText) {
-  if (!currentQuestion.value) return;
+  if (!currentQuestion.value) {
+    quizFinished.value = true;
+    return;
+  }
+
   const optionMap = {
     [currentQuestion.value.option_a]: 'A',
     [currentQuestion.value.option_b]: 'B',
     [currentQuestion.value.option_c]: 'C',
     [currentQuestion.value.option_d]: 'D'
   };
+
   const selectedLetter = optionMap[selectedText];
   const isCorrect = (selectedLetter === currentQuestion.value.correct_option);
+
   userAnswers.value.push({
     questionId: currentQuestion.value.id,
     questionText: currentQuestion.value.question_text,
@@ -248,11 +322,13 @@ function handleAnswer(selectedText) {
     isCorrect: isCorrect,
     timestamp: Date.now()
   });
+
   if (currentIndex.value + 1 < data.value.length) {
     currentIndex.value++;
     saveQuizProgress();
   } else {
     quizFinished.value = true;
+    quizCompleted.value = false;
     saveQuizProgress();
   }
 }
@@ -261,10 +337,17 @@ function handleAnswer(selectedText) {
 async function getData() {
   try {
     loading.value = true;
-    const response = await supabase.from('questions').select('*').order('id');
+    const response = await supabase
+      .from('questions')
+      .select('*')
+      .order('id');
+
     if (response.error) throw new Error(response.error.message);
     data.value = response.data || [];
-    if (data.value.length > 0) await loadSessionFromSupabase();
+
+    if (data.value.length > 0) {
+      await loadSessionFromSupabase();
+    }
   } catch (err) {
     console.error(err);
     errorMessage.value = err.message;
@@ -283,30 +366,29 @@ function openDiplomaModal() {
   nickname.value = '';
   showDiplomaModal.value = true;
 }
+
 function closeDiplomaModal() {
   showDiplomaModal.value = false;
 }
+
 function submitDiploma() {
   if (!nickname.value.trim()) return;
-  const finalScore = (score.value * 5) || (completedScore.value * 5);
+  const finalScore = (score.value * 5) || (progress?.finalScore * 5);
   const total = data.value.length * 5;
-  const result = { 
-    nickname: nickname.value.trim(), 
-    score: finalScore, 
-    total: total, 
+  const result = {
+    nickname: nickname.value.trim(),
+    score: finalScore,
+    total: total,
     date: new Date().toISOString(),
     telegramId: getTelegramId()
   };
   console.log('Отправка диплома:', result);
-  
-  // Отправка в Telegram (если приложение запущено в Telegram)
+
   if (window.Telegram?.WebApp) {
     window.Telegram.WebApp.sendData(JSON.stringify({ event: 'diploma_request', data: result }));
   }
-  
-  // Сохраняем в localStorage
+
   localStorage.setItem('diploma_request', JSON.stringify(result));
-  
   alert('Заявка отправлена! Ожидайте диплом в ближайшее время.');
   closeDiplomaModal();
 }
@@ -509,7 +591,7 @@ onMounted(async () => {
 }
 
 .button_sert.cancel {
-  background: linear-gradient(105deg, #4a2e2e 0%, #3a1f1f 100%);
+  background: linear-gradient(105deg, #764848 0%, #3a1f1f 100%);
   box-shadow: 0 4px 0 #2a1515;
 }
 
