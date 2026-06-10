@@ -372,29 +372,49 @@ function closeDiplomaModal() {
   showDiplomaModal.value = false;
 }
 
-// Функция скачивания диплома
+// Функция скачивания диплома (для Telegram Mini App)
 function submitDiploma() {
   if (!nickname.value.trim()) return;
 
-  const finalScore = (score.value * 5) || (progress?.finalScore * 5);
+  const finalScore = (progress?.finalScore * 5) || (score.value * 5)
   const total = data.value.length * 5;
   const userName = nickname.value.trim();
+  const telegramId = getTelegramId();
 
-  // Создаём контейнер для диплома
+  // Отправляем данные боту
+  if (window.Telegram?.WebApp) {
+    window.Telegram.WebApp.sendData(JSON.stringify({
+      event: 'generate_diploma',
+      nickname: userName,
+      score: finalScore,
+      total: total,
+      telegramId: telegramId,
+      date: new Date().toLocaleDateString()
+    }));
+    alert('Диплом будет отправлен вам в Telegram!');
+  } else {
+    // Fallback для браузера (обычное скачивание)
+    downloadDiplomaLocally(userName, finalScore, total);
+  }
+  
+  closeDiplomaModal();
+}
+
+// Fallback для браузера (если нужно)
+function downloadDiplomaLocally(userName, finalScore, total) {
   const diplomaDiv = document.createElement('div');
   diplomaDiv.style.position = 'absolute';
   diplomaDiv.style.left = '-9999px';
   diplomaDiv.style.top = '0';
   diplomaDiv.style.width = '800px';
   diplomaDiv.style.height = '600px';
-  diplomaDiv.style.backgroundImage = 'url(/diplom.jpg)';  // ← ИСПРАВЛЕНО: просто /diplom.jpg
+  diplomaDiv.style.backgroundImage = 'url(/diplom.jpg)';
   diplomaDiv.style.backgroundSize = 'cover';
   diplomaDiv.style.backgroundPosition = 'center';
   diplomaDiv.style.color = 'white';
   diplomaDiv.style.fontFamily = 'Georgia, serif';
   diplomaDiv.style.textAlign = 'center';
 
-  // Текст поверх диплома
   diplomaDiv.innerHTML = `
     <div style="position: absolute; top: 280px; left: 0; right: 0;">
       <h2 style="font-size: 36px; margin: 0; color: #ffd700;">${userName}</h2>
@@ -418,16 +438,13 @@ function submitDiploma() {
     .then(canvas => {
       const link = document.createElement('a');
       link.download = `diplom_${userName}.png`;
-      link.href = canvas.toDataURL('image/png');  // ← ИСПРАВЛЕНО: 'image/png' без слеша
+      link.href = canvas.toDataURL('image/png');
       link.click();
       document.body.removeChild(diplomaDiv);
-      closeDiplomaModal();
-      alert('Диплом успешно скачан!');
     })
     .catch(err => {
       console.error('Ошибка генерации диплома:', err);
       document.body.removeChild(diplomaDiv);
-      alert('Ошибка при создании диплома. Попробуйте позже.');
     });
 }
 
