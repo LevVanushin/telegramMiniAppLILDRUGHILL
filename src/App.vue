@@ -363,6 +363,7 @@ onMounted(async () => {
 }
 
 .button_sert{
+  width: 100%;
   text-align: center;
   font-family: Georgia, 'Times New Roman', Times, serif;
   align-self: center;
