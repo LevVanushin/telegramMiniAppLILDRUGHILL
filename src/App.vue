@@ -14,6 +14,7 @@
         <h2>Экзамен уже пройден!</h2>
         <p class="score">Баллы: {{ completedScore * 5 }} из {{ data.length * 5 }}</p>
         <p class="thankyou-message">Благодарим за прохождение. Желаем удачи всем на реальных экзаменах!</p>
+        <button v-if="completedScore>=12">Молодец</button>
         <p class="armyCaption">lildrughill army - off fan page</p>
       </div>
       
