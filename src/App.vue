@@ -414,7 +414,7 @@ async function submitDiploma() {
   diplomaDiv.style.position = 'absolute';
   diplomaDiv.style.left = '-9999px';
   diplomaDiv.style.top = '0';
-  diplomaDiv.style.width = '800px';
+  diplomaDiv.style.width = '900px';
   diplomaDiv.style.height = '600px';
   diplomaDiv.style.backgroundImage = 'url(/diplom.jpg)';
   diplomaDiv.style.backgroundSize = 'cover';
