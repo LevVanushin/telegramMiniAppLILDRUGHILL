@@ -415,10 +415,10 @@ async function submitDiploma() {
   diplomaDiv.style.textAlign = 'center';
 
   diplomaDiv.innerHTML = `
-    <div style="position: absolute; top: 260px; left: 0; right: 0;">
-      <h2 style="font-size: 36px; font-weight: 600; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
+    <div style="position: absolute; top: 253px; left: 0; right: 0;">
+      <h2 style="font-size: 30px; font-weight: 600; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
     </div>
-    <div style="position: absolute; bottom: 100px; left: -460px; right: 0;">
+    <div style="position: absolute; bottom: 100px; left: -455px; right: 0;">
       <p style="font-size: 15px; font-weight: 400" font-family: Playfair Display, Cormorant Garamond, Georgia, serif;>${new Date().toLocaleDateString()}</p>
     </div>
   `;
