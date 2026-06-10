@@ -416,8 +416,7 @@ async function submitDiploma() {
   diplomaDiv.style.top = '0';
   diplomaDiv.style.width = '1300px';
   diplomaDiv.style.height = '1000px';
-  const imageUrl = `/diplom.png?t=${Date.now()}`;
-  diplomaDiv.style.backgroundImage = `url(${imageUrl})`;
+  diplomaDiv.style.backgroundImage = 'url(.\public\diplom.png)';
   diplomaDiv.style.backgroundSize = 'cover';
   diplomaDiv.style.backgroundPosition = 'center';
   diplomaDiv.style.color = 'white';
