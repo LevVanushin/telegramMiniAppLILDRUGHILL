@@ -17,6 +17,7 @@
         <p class="armyCaption">lildrughill army - off fan page</p>
       </div>
       
+      
       <quizCard 
         v-else-if="data.length > 0 && !quizFinished"
         class="quiz" 
