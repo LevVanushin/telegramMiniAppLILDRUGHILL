@@ -58,7 +58,7 @@
           />
         </div>
         <div class="modal-buttons">
-          <button class="button_sert" @click="submitDiploma" :disabled="!nickname">Отправить</button>
+          <button class="button_sert" @click="submitDiploma" :disabled="!nickname">Скачать диплом</button>
           <button class="button_sert cancel" @click="closeDiplomaModal">Отмена</button>
         </div>
         <p class="armyCaption">lildrughill army - off fan page</p>
@@ -73,6 +73,7 @@ import { supabase } from "./lib/supabase.js";
 import quizCard from "./components/quizCard.vue";
 import SubscriptionCheck from "./components/SubscriptionCheck.vue";
 import { onMounted, ref, computed } from "vue";
+import html2canvas from "html2canvas";
 
 // ====== Конфигурация ======
 const SYNC_TIMEOUT = 30000;
@@ -371,26 +372,63 @@ function closeDiplomaModal() {
   showDiplomaModal.value = false;
 }
 
+// Функция скачивания диплома
 function submitDiploma() {
   if (!nickname.value.trim()) return;
+
   const finalScore = (score.value * 5) || (progress?.finalScore * 5);
   const total = data.value.length * 5;
-  const result = {
-    nickname: nickname.value.trim(),
-    score: finalScore,
-    total: total,
-    date: new Date().toISOString(),
-    telegramId: getTelegramId()
-  };
-  console.log('Отправка диплома:', result);
+  const userName = nickname.value.trim();
 
-  if (window.Telegram?.WebApp) {
-    window.Telegram.WebApp.sendData(JSON.stringify({ event: 'diploma_request', data: result }));
-  }
+  // Создаём контейнер для диплома
+  const diplomaDiv = document.createElement('div');
+  diplomaDiv.style.position = 'absolute';
+  diplomaDiv.style.left = '-9999px';
+  diplomaDiv.style.top = '0';
+  diplomaDiv.style.width = '800px';
+  diplomaDiv.style.height = '600px';
+  diplomaDiv.style.backgroundImage = 'url(/diplom.jpg)';
+  diplomaDiv.style.backgroundSize = 'cover';
+  diplomaDiv.style.backgroundPosition = 'center';
+  diplomaDiv.style.color = 'white';
+  diplomaDiv.style.fontFamily = 'Georgia, serif';
+  diplomaDiv.style.textAlign = 'center';
 
-  localStorage.setItem('diploma_request', JSON.stringify(result));
-  alert('Заявка отправлена! Ожидайте диплом в ближайшее время.');
-  closeDiplomaModal();
+  // Текст поверх диплома (откорректируй top под свой макет)
+  diplomaDiv.innerHTML = `
+    <div style="position: absolute; top: 280px; left: 0; right: 0;">
+      <h2 style="font-size: 36px; margin: 0; color: #ffd700;">${userName}</h2>
+    </div>
+    <div style="position: absolute; top: 380px; left: 0; right: 0;">
+      <p style="font-size: 20px;">Результат: ${finalScore} из ${total} баллов</p>
+    </div>
+    <div style="position: absolute; bottom: 80px; left: 0; right: 0;">
+      <p style="font-size: 14px;">${new Date().toLocaleDateString()}</p>
+    </div>
+  `;
+
+  document.body.appendChild(diplomaDiv);
+
+  html2canvas(diplomaDiv, {
+    scale: 2,
+    backgroundColor: null,
+    useCORS: true,
+    allowTaint: false
+  })
+    .then(canvas => {
+      const link = document.createElement('a');
+      link.download = `diplom_${userName}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      document.body.removeChild(diplomaDiv);
+      closeDiplomaModal();
+      alert('Диплом успешно скачан!');
+    })
+    .catch(err => {
+      console.error('Ошибка генерации диплома:', err);
+      document.body.removeChild(diplomaDiv);
+      alert('Ошибка при создании диплома. Попробуйте позже.');
+    });
 }
 
 // ====== Lifecycle ======
@@ -400,6 +438,7 @@ onMounted(async () => {
 </script>
 
 <style>
+/* Стили без изменений, они уже есть в твоём коде */
 @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 
 @keyframes fadeSlideDown {
@@ -440,6 +479,11 @@ onMounted(async () => {
   transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
   box-shadow: 0 6px 0 #182043;
   align-items: center;
+}
+
+.button_sert.cancel {
+  background: linear-gradient(105deg, #4a2e2e 0%, #3a1f1f 100%);
+  box-shadow: 0 4px 0 #2a1515;
 }
 
 .loading, .error {
