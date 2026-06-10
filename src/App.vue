@@ -12,7 +12,7 @@
       
       <div v-else-if="quizCompleted" class="results">
         <h2>Экзамен уже пройден!</h2>
-        <p class="score">Баллы: {{ score * 5 }} из {{ data.length * 5 }}</p>
+        <p class="score">Баллы: {{ Number(JSON.parse(window.supabaseSessionData).total_score) * 5 }} из {{ data.length * 5 }}</p>
         <p class="thankyou-message">Благодарим за прохождение. Желаем удачи всем на реальных экзаменах!</p>
         <p class="armyCaption">lildrughill army - off fan page</p>
       </div>
@@ -63,6 +63,12 @@ const quizFinished = ref(false);
 const quizCompleted = ref(false);
 const completedScore = ref(0);
 
+// ====== ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ — данные сессии из Supabase ======
+// Содержит полную строку из таблицы user_sessions после загрузки.
+// Доступна как window.supabaseSessionData из любого места.
+const supabaseSessionData = ref(null);
+window.supabaseSessionData = supabaseSessionData;
+
 // ====== Computed ======
 const currentQuestion = computed(() => data.value[currentIndex.value]);
 const currentOptions = computed(() => {
@@ -94,15 +100,14 @@ function parseSupabaseDate(dateStr) {
 
 // ====== Очистка истёкшей сессии ======
 async function clearExpiredSession(telegramId = null) {
-  // Сбрасываем реактивное состояние
   currentIndex.value = 0;
   userAnswers.value = [];
   quizFinished.value = false;
   quizCompleted.value = false;
   completedScore.value = 0;
+  supabaseSessionData.value = null;
   console.log('🔄 Реактивное состояние сброшено');
 
-  // Удаляем из Supabase
   if (telegramId) {
     try {
       const { error } = await supabase
@@ -199,13 +204,11 @@ async function saveQuizProgress() {
 async function loadSessionFromSupabase() {
   const telegramId = getTelegramId();
 
-  // ── Блок без telegramId ──────────────────────────────────────────
   if (!telegramId) {
     console.warn('⚠️ Telegram ID не найден, сессия не загружена');
     return;
   }
 
-  // ── Запрос к Supabase ────────────────────────────────────────────
   let timeoutId;
   const timeoutPromise = new Promise((_, reject) => {
     timeoutId = setTimeout(() => reject(new Error('Timeout')), SYNC_TIMEOUT);
@@ -217,24 +220,22 @@ async function loadSessionFromSupabase() {
     .eq('telegram_id', telegramId)
     .maybeSingle();
 
-  let supabaseData = null;
   try {
     const response = await Promise.race([fetchPromise, timeoutPromise]);
     clearTimeout(timeoutId);
     if (!response.error && response.data) {
-      supabaseData = response.data;
+      supabaseSessionData.value = response.data;
     }
   } catch (err) {
     clearTimeout(timeoutId);
     console.warn('Supabase timeout/error, сессия не загружена');
   }
 
-  // ── Supabase вернул данные ───────────────────────────────────────
-  if (supabaseData) {
-    const expiresAt = parseSupabaseDate(supabaseData.expires_at);
+  if (supabaseSessionData.value) {
+    const expiresAt = parseSupabaseDate(supabaseSessionData.value.expires_at);
 
     if (isNaN(expiresAt)) {
-      console.warn('⚠️ Не удалось распарсить expires_at:', supabaseData.expires_at);
+      console.warn('⚠️ Не удалось распарсить expires_at:', supabaseSessionData.value.expires_at);
       await clearExpiredSession(telegramId);
       return;
     }
@@ -245,19 +246,17 @@ async function loadSessionFromSupabase() {
       return;
     }
 
-    // Сессия валидна — грузим
     const session = {
-      id: supabaseData.session_id,
-      createdAt: parseSupabaseDate(supabaseData.created_at),
+      id: supabaseSessionData.value.session_id,
+      createdAt: parseSupabaseDate(supabaseSessionData.value.created_at),
       expiresAt: expiresAt,
-      quizProgress: supabaseData.quiz_progress
+      quizProgress: supabaseSessionData.value.quiz_progress
     };
     loadProgressFromSession(session);
     console.log('✅ Данные загружены из Supabase');
     return;
   }
 
-  // ── Supabase недоступен или записи нет — стартуем чисто ─────────
   console.log('ℹ️ Сессия в Supabase не найдена, стартуем заново');
 }
 
