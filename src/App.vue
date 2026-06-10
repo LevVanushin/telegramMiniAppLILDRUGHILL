@@ -409,102 +409,119 @@ async function submitDiploma() {
   isSending.value = true;
   cancelRequest = false;
 
-  // Создаём контейнер для диплома
-  const diplomaDiv = document.createElement('div');
-  diplomaDiv.style.position = 'absolute';
-  diplomaDiv.style.left = '-9999px';
-  diplomaDiv.style.top = '0';
-  diplomaDiv.style.width = '1300px';
-  diplomaDiv.style.height = '1000px';
-  diplomaDiv.style.backgroundSize = 'cover';
-  diplomaDiv.style.backgroundPosition = 'center';
-  diplomaDiv.style.color = 'white';
-  diplomaDiv.style.fontFamily = 'Georgia, serif';
-  diplomaDiv.style.textAlign = 'center';
+let isProcessing = false; // Добавь в начало script setup
 
-diplomaDiv.innerHTML = `
-<img src="/diplom.png" style="position: absolute; width: 100%; height: 100%; left: 0; top: 0; object-fit: cover; z-index: -1;">
-  <div style="position: absolute; top: 450px; left: 0; right: 0;">
-    <h2 style="font-size: 54px; font-weight: 600; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
-  </div>
-  <div style="position: absolute; bottom: 123px; left: 195px;">
-    <p style="font-size: 30px; text align: left; font-weight: 600">${new Date().toLocaleDateString()}</p>
-  </div>
-`;
+async function submitDiploma() {
+  // Блокируем повторные вызовы
+  if (isProcessing) {
+    alert('Диплом уже создаётся, подождите...');
+    return;
+  }
+  
+  if (!nickname.value.trim()) return;
+  if (isSending.value) return;
+  if (remainingAttempts.value <= 0) {
+    alert('Вы исчерпали лимит попыток (5).');
+    return;
+  }
 
-
-  document.body.appendChild(diplomaDiv);
-
+  isProcessing = true;
+  isSending.value = true;
+  cancelRequest = false;
 
   try {
-    // Проверяем, не отменено ли
-    if (cancelRequest) {
-      document.body.removeChild(diplomaDiv);
-      return;
-    }
+    // Загружаем фоновое изображение
+    const bgImage = new Image();
+    bgImage.crossOrigin = 'Anonymous';
+    bgImage.src = '/diplom.png';
     
-    const canvas = await html2canvas(diplomaDiv, {
-  scale: 4,                    // Увеличь с 2 до 3-4 для лучшего качества
-  backgroundColor: null,
-  useCORS: true,
-  allowTaint: false,
-  logging: false,
-  imageTimeout: 0,
-  pixelRatio: window.devicePixelRatio || 2  // Используем родное разрешение экрана
-});
-    
-    // Проверяем, не отменено ли
-    if (cancelRequest) {
-      document.body.removeChild(diplomaDiv);
-      return;
-    }
-    
-    document.body.removeChild(diplomaDiv);
-    
-    // Конвертируем canvas в Blob
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-    
-    // Проверяем, не отменено ли
+    await new Promise((resolve, reject) => {
+      bgImage.onload = resolve;
+      bgImage.onerror = reject;
+      setTimeout(() => reject(new Error('Таймаут загрузки изображения')), 5000);
+    });
+
     if (cancelRequest) return;
-    
-    // Создаём FormData для отправки файла
+
+    // Создаём контейнер
+    const diplomaDiv = document.createElement('div');
+    diplomaDiv.style.position = 'absolute';
+    diplomaDiv.style.left = '-9999px';
+    diplomaDiv.style.top = '0';
+    diplomaDiv.style.width = '1300px';
+    diplomaDiv.style.height = '1000px';
+    diplomaDiv.style.position = 'relative';
+    diplomaDiv.style.color = 'white';
+    diplomaDiv.style.fontFamily = 'Georgia, serif';
+
+    diplomaDiv.innerHTML = `
+      <img src="/diplom.png" style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 0;">
+      <div style="position: absolute; top: 450px; left: 0; right: 0; text-align: center; z-index: 1;">
+        <h2 style="font-size: 54px; font-weight: 600; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
+      </div>
+      <div style="position: absolute; bottom: 123px; left: 195px; z-index: 1;">
+        <p style="font-size: 30px; font-weight: 600; color: white;">${new Date().toLocaleDateString()}</p>
+      </div>
+    `;
+
+    document.body.appendChild(diplomaDiv);
+
+    if (cancelRequest) {
+      document.body.removeChild(diplomaDiv);
+      return;
+    }
+
+    // Даём время на отрисовку
+    await new Promise(r => setTimeout(r, 100));
+
+    const canvas = await html2canvas(diplomaDiv, {
+      scale: 3,
+      backgroundColor: null,
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      imageTimeout: 0
+    });
+
+    document.body.removeChild(diplomaDiv);
+
+    if (cancelRequest) return;
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (cancelRequest) return;
+
     const formData = new FormData();
     formData.append('chat_id', telegramId);
     formData.append('photo', blob, `diplom_${userName}.png`);
     formData.append('caption', `🎓 *Диплом для ${userName}*\nРезультат: ${finalScore} из ${total} баллов`);
     formData.append('parse_mode', 'Markdown');
-    
-    // Отправляем фото через Telegram Bot API
+
     const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
       method: 'POST',
       body: formData
     });
-    
-    // Проверяем, не отменено ли
+
     if (cancelRequest) return;
-    
+
     const result = await response.json();
-    
+
     if (result.ok) {
       remainingAttempts.value--;
-      alert(`✅ Диплом отправлен в Telegram! Осталось попыток: ${remainingAttempts.value}`);
+      alert(`✅ Диплом отправлен! Осталось попыток: ${remainingAttempts.value}`);
+      closeDiplomaModal();
     } else {
-      console.error('Ошибка:', result);
-      alert('❌ Ошибка при отправке диплома. Попробуйте позже.');
+      throw new Error(result.description);
     }
-    
-    closeDiplomaModal();
   } catch (err) {
     if (!cancelRequest) {
       console.error('Ошибка:', err);
-      alert('Ошибка при создании или отправке диплома');
+      alert('Ошибка при создании или отправке диплома: ' + err.message);
     }
-    document.body.removeChild(diplomaDiv);
   } finally {
+    isProcessing = false;
     isSending.value = false;
   }
 }
-
 // ====== Lifecycle ======
 onMounted(async () => {
   await getData();
