@@ -268,7 +268,7 @@ async function loadSessionFromSupabase() {
 // ====== Логика викторины ======
 function handleAnswer(selectedText) {
   if (!currentQuestion.value) { 
-    quizFinished = true;
+    quizFinished.value = true;
     return
   }
 
