@@ -590,10 +590,6 @@ onMounted(async () => {
   margin-top: 10px;
 }
 
-.button_sert.cancel {
-  background: linear-gradient(105deg, #764848 0%, #3a1f1f 100%);
-  box-shadow: 0 4px 0 #2a1515;
-}
 
 .button_sert:disabled {
   opacity: 0.5;
