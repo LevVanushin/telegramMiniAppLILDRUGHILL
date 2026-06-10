@@ -290,14 +290,23 @@ function submitDiploma() {
   if (!nickname.value.trim()) return;
   const finalScore = (score.value * 5) || (completedScore.value * 5);
   const total = data.value.length * 5;
-  const result = { nickname: nickname.value.trim(), score: finalScore, total: total, date: new Date().toISOString() };
+  const result = { 
+    nickname: nickname.value.trim(), 
+    score: finalScore, 
+    total: total, 
+    date: new Date().toISOString(),
+    telegramId: getTelegramId()
+  };
   console.log('Отправка диплома:', result);
+  
   // Отправка в Telegram (если приложение запущено в Telegram)
   if (window.Telegram?.WebApp) {
     window.Telegram.WebApp.sendData(JSON.stringify({ event: 'diploma_request', data: result }));
   }
-  // Дополнительно можно сохранить в localStorage или отправить в Supabase
+  
+  // Сохраняем в localStorage
   localStorage.setItem('diploma_request', JSON.stringify(result));
+  
   alert('Заявка отправлена! Ожидайте диплом в ближайшее время.');
   closeDiplomaModal();
 }
@@ -309,8 +318,143 @@ onMounted(async () => {
 </script>
 
 <style>
-/* ... существующие стили ... */
-/* Дополнительные стили для модального окна */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeScaleUp {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes questionSlideIn {
+  from { opacity: 0; transform: translateY(40px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+  padding: 0px 30px 130px 30px;
+}
+
+.button_sert {
+  width: 100%;
+  text-align: center;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  align-self: center;
+  background: linear-gradient(105deg, #1e2a5e 0%, #30396b 100%);
+  border: none;
+  padding: 20px 0px;
+  border-radius: 15px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f0f3ff;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+  box-shadow: 0 6px 0 #182043;
+  align-items: center;
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 20px;
+  font-size: 18px;
+}
+
+.error { color: red; }
+
+.results {
+  background: linear-gradient(to bottom, #234082 0%, #172147 100%);
+  border-radius: 32px;
+  padding: 40px;
+  text-align: center;
+  font-family: "Roboto", sans-serif;
+  font-weight: 700;
+  color: white;
+  max-width: 500px;
+  animation: fadeScaleUp 0.5s ease-out 0.2s both;
+  position: relative;
+}
+
+.results h2 {
+  font-size: 30px;
+  margin-bottom: 10px;
+}
+
+.score {
+  font-size: 23px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.thankyou-message {
+  font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif;
+  font-style: italic;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: #b9cbff;
+  opacity: 0.8;
+  text-align: center;
+  margin: 20px 0 10px;
+  border-bottom: 1px dashed gray;
+  padding-bottom: 15px;
+  line-height: 1.4;
+}
+
+.armyCaption {
+  position: absolute;
+  bottom: 15px;
+  left: 20px;
+  font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif;
+  font-style: italic;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: #b9cbff;
+  opacity: 0.8;
+}
+
+.mike {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  transition: .2s ease-in-out;
+  animation: fadeSlideDown 0.5s ease-out both;
+}
+
+.mike:hover {
+  width: 300px;
+  height: 300px;
+}
+
+.shadow {
+  position: absolute;
+  width: 100%;
+  height: 100vh;
+  top: 0px;
+  opacity: 80%;
+  background: linear-gradient(to bottom, #234082 10%, rgb(255, 255, 255) 90%);
+  filter: blur(10px);
+  z-index: -5;
+}
+
+.quiz {
+  align-self: center;
+  animation: questionSlideIn 0.35s ease-out both;
+  margin-bottom: 30px;
+}
+
+.subscription-check {
+  animation: fadeScaleUp 0.5s ease-out 0.2s both;
+}
+
+/* Стили для модального окна */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -324,6 +468,7 @@ onMounted(async () => {
   z-index: 1000;
   backdrop-filter: blur(4px);
 }
+
 .modal-content {
   max-width: 400px;
   width: 90%;
@@ -332,16 +477,19 @@ onMounted(async () => {
   margin: 0;
   animation: fadeScaleUp 0.3s ease-out;
 }
+
 .input-group {
   margin: 20px 0;
   text-align: left;
 }
+
 .input-group label {
   display: block;
   margin-bottom: 8px;
   font-size: 14px;
   color: #b9cbff;
 }
+
 .nick-input {
   width: 100%;
   padding: 12px;
@@ -352,18 +500,25 @@ onMounted(async () => {
   font-size: 16px;
   box-sizing: border-box;
 }
+
 .modal-buttons {
   display: flex;
   gap: 12px;
   justify-content: center;
   margin-top: 10px;
 }
+
 .button_sert.cancel {
   background: linear-gradient(105deg, #4a2e2e 0%, #3a1f1f 100%);
   box-shadow: 0 4px 0 #2a1515;
 }
+
 .button_sert:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+@media(max-width: 330px) {
+  .container { padding: 5px; }
 }
 </style>
