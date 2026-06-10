@@ -182,6 +182,7 @@ function loadProgressFromSession(session) {
   userAnswers.value = progress.answers || [];
   currentIndex.value = progress.currentIndex || 0;
 
+  
   if (progress.isCompleted) {
     quizCompleted.value = true;
     completedScore.value = progress.finalScore || 0;
@@ -411,7 +412,7 @@ async function submitDiploma() {
     </div>
   `;
 
-  
+
   document.body.appendChild(diplomaDiv);
 
 
