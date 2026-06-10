@@ -387,28 +387,6 @@ function cancelDiploma() {
 
 // Функция отправки диплома через прямой вызов API бота
 const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN; // Твой токен
-
-async function submitDiploma() {
-  if (!nickname.value.trim()) return;
-  if (isSending.value) return;
-  if (remainingAttempts.value <= 0) {
-    alert('Вы исчерпали лимит попыток (5).');
-    return;
-  }
-
-  const finalScore =(progress?.finalScore * 5) ||  (score.value * 5);
-  const total = data.value.length * 5;
-  const userName = nickname.value.trim();
-  const telegramId = getTelegramId();
-
-  if (!telegramId) {
-    alert('Не удалось определить ваш Telegram ID');
-    return;
-  }
-
-  isSending.value = true;
-  cancelRequest = false;
-
 let isProcessing = false; // Добавь в начало script setup
 
 async function submitDiploma() {
