@@ -370,16 +370,13 @@ onMounted(async () => {
   background: linear-gradient(105deg, #1e2a5e 0%, #37416f 100%);
   border: none;
   border-radius: 20px;
-  padding: 16px 20px;
   font-size: 16px;
   font-weight: 600;
   color: #f0f3ff;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
   box-shadow: 0 6px 0 #182043;
-  display: flex;
   align-items: center;
-  gap: 14px;
 }
 
 .loading, .error {
