@@ -103,16 +103,16 @@ function createSession() {
       savedAt: Date.now()
     }
   };
-  localStorage.setItem('quiz_session', JSON.stringify(session));
+  // localStorage.setItem('quiz_session', JSON.stringify(session));
   console.log('✨ Создана новая сессия');
   return session;
 }
 
-function getLocalSession() {
-  const raw = localStorage.getItem('quiz_session');
-  if (!raw) return null;
-  return JSON.parse(raw);
-}
+// function getLocalSession() {
+//   const raw = localStorage.getItem('quiz_session');
+//   if (!raw) return null;
+//   return JSON.parse(raw);
+// }
 
 function loadProgressFromSession(session) {
   const progress = session.quizProgress;
@@ -140,7 +140,7 @@ function loadProgressFromSession(session) {
     if (correctCount !== progress.finalScore) {
       progress.finalScore = correctCount;
       session.quizProgress = progress;
-      localStorage.setItem('quiz_session', JSON.stringify(session));
+      // localStorage.setItem('quiz_session', JSON.stringify(session));
     }
   }
   
@@ -148,7 +148,7 @@ function loadProgressFromSession(session) {
 }
 
 function saveQuizProgress() {
-  const session = getLocalSession();
+  // const session = getLocalSession();
   if (!session) return;
   
   session.quizProgress = {
@@ -159,7 +159,7 @@ function saveQuizProgress() {
     savedAt: Date.now()
   };
   session.expiresAt = Date.now() + SESSION_TTL;
-  localStorage.setItem('quiz_session', JSON.stringify(session));
+  // localStorage.setItem('quiz_session', JSON.stringify(session));
   
   syncSessionToSupabase().catch(e => console.warn(e));
 }
