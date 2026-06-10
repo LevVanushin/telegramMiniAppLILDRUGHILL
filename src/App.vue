@@ -404,7 +404,7 @@ async function submitDiploma() {
 
   diplomaDiv.innerHTML = `
     <div style="position: absolute; top: 270px; left: 0; right: 0;">
-      <h2 style="font-size: 36px; font-weight: 600; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
+      <h2 style="font-size: 36px; font-weight: 500; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
     </div>
     <div style="position: absolute; bottom: 80px; left: -400px; right: 0;">
       <p style="font-size: 14px;">${new Date().toLocaleDateString()}</p>
@@ -413,7 +413,7 @@ async function submitDiploma() {
 
   document.body.appendChild(diplomaDiv);
 
-  
+
   try {
     const canvas = await html2canvas(diplomaDiv, {
       scale: 2,
