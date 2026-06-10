@@ -12,7 +12,7 @@
       
       <div v-else-if="quizCompleted" class="results">
         <h2>Экзамен уже пройден!</h2>
-        <p class="score">Баллы: {{ Number(JSON.parse(window.supabaseSessionData).total_score) * 5 }} из {{ data.length * 5 }}</p>
+        <p class="score">Баллы: {{ progress.finalScore * 5 }} из {{ data.length * 5 }}</p>
         <p class="thankyou-message">Благодарим за прохождение. Желаем удачи всем на реальных экзаменах!</p>
         <p class="armyCaption">lildrughill army - off fan page</p>
       </div>
@@ -29,7 +29,7 @@
       
       <div v-else-if="quizFinished" class="results">
         <h2>Экзамен завершен!</h2>
-        <p class="score">Баллы: {{ score * 5 }} из {{ data.length * 5 }}</p>
+        <p class="score">Баллы: {{ progress.finalScore * 5 }} из {{ data.length * 5 }}</p>
         <p class="thankyou-message">Благодарим за прохождение. Желаем удачи всем на реальных экзаменах!</p>
         <p class="armyCaption">lildrughill army - off fan page</p>
       </div>
@@ -138,8 +138,10 @@ function createSessionObject() {
   };
 }
 
+let progress;
+
 function loadProgressFromSession(session) {
-  const progress = session.quizProgress;
+  progress = session.quizProgress;
 
   userAnswers.value = progress.answers || [];
   currentIndex.value = progress.currentIndex || 0;
@@ -200,6 +202,7 @@ async function saveQuizProgress() {
     console.warn('Ошибка сохранения прогресса в Supabase:', err);
   }
 }
+
 
 async function loadSessionFromSupabase() {
   const telegramId = getTelegramId();
