@@ -14,9 +14,13 @@
         <h2>Экзамен уже пройден!</h2>
         <p class="score">Баллы: {{ progress.finalScore * 5 }} из {{ data.length * 5 }}</p>
         <p class="thankyou-message">Благодарим за прохождение. Желаем удачи всем на реальных экзаменах!</p>
-        <button v-if="(progress.finalScore * 5) >= 60" class="button_sert">Получить диплом</button>
-
+        <button v-if="(progress.finalScore * 5) >= 60" class="button_sert" @click="sert">Получить диплом</button>
         <p class="armyCaption">lildrughill army - off fan page</p>
+      </div>
+
+      <div v-if="sert" class="results">
+        <p>Введи ник:</p>
+        <input type="input">
       </div>
       
       <quizCard 
@@ -40,6 +44,8 @@
       <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
       <div v-else-if="!loading" class="error">Нет данных</div>
     </template>
+
+
   </div>
   <div class="shadow"></div>
 </template>
@@ -65,6 +71,10 @@ const userAnswers = ref([]);
 const quizFinished = ref(false);
 const quizCompleted = ref(false);
 const completedScore = ref(0);
+
+function sert(){
+  return true
+}
 
 // ====== ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ — данные сессии из Supabase ======
 // Содержит полную строку из таблицы user_sessions после загрузки.
