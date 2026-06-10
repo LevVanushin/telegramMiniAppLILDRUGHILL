@@ -155,6 +155,8 @@ function loadProgressFromSession(session) {
     completedScore.value = 0;
     if (currentIndex.value >= data.value.length && data.value.length > 0) {
       quizFinished.value = true;
+      quizCompleted.value = false;
+
     } else {
       quizFinished.value = false;
     }
@@ -290,6 +292,7 @@ function handleAnswer(selectedText) {
     saveQuizProgress();
   } else {
     quizFinished.value = true;
+    quizCompleted.value = false
     saveQuizProgress();
   }
 }
