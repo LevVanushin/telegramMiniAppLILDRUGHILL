@@ -29,7 +29,7 @@
       
       <div v-else-if="quizFinished" class="results">
         <h2>Экзамен завершен!</h2>
-        <p class="score">Баллы: {{ progress.finalScore * 5 }} из {{ data.length * 5 }}</p>
+        <p class="score">Баллы: {{ score * 5 }} из {{ data.length * 5 }}</p>
         <p class="thankyou-message">Благодарим за прохождение. Желаем удачи всем на реальных экзаменах!</p>
         <p class="armyCaption">lildrughill army - off fan page</p>
       </div>
