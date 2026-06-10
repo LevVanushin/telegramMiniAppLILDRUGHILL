@@ -8,7 +8,7 @@
     />
 
     <template v-else>
-      <div v-if="loading" class="loading">Загрузка YTN FSDFSDFSDFSD вопросов...</div>
+      <div v-if="loading" class="loading">Загрузка вопросов...</div>
       
       <div v-else-if="quizCompleted" class="results">
         <h2>Экзамен уже пройден!</h2>
@@ -58,7 +58,7 @@
           />
         </div>
         <div class="modal-buttons">
-          <button class="button_sert" @click="submitDiploma" :disabled="!nickname">Скачать диплом</button>
+          <button class="button_sert" @click="submitDiploma" :disabled="!nickname">Отправить</button>
           <button class="button_sert cancel" @click="closeDiplomaModal">Отмена</button>
         </div>
         <p class="armyCaption">lildrughill army - off fan page</p>
@@ -101,7 +101,7 @@ function sert() {
 const showDiplomaModal = ref(false);
 const nickname = ref('');
 
-// ====== ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ — данные сессии из Supabase ======
+// ====== Глобальная переменная — данные сессии из Supabase ======
 const supabaseSessionData = ref(null);
 window.supabaseSessionData = supabaseSessionData;
 
@@ -372,36 +372,15 @@ function closeDiplomaModal() {
   showDiplomaModal.value = false;
 }
 
-// Функция скачивания диплома (для Telegram Mini App)
-function submitDiploma() {
+// Функция отправки диплома через бота
+async function submitDiploma() {
   if (!nickname.value.trim()) return;
 
-  const finalScore = (progress?.finalScore * 5) || (score.value * 5)
+  const finalScore = (score.value * 5) || (progress?.finalScore * 5);
   const total = data.value.length * 5;
   const userName = nickname.value.trim();
-  const telegramId = getTelegramId();
 
-  // Отправляем данные боту
-  if (window.Telegram?.WebApp) {
-    window.Telegram.WebApp.sendData(JSON.stringify({
-      event: 'generate_diploma',
-      nickname: userName,
-      score: finalScore,
-      total: total,
-      telegramId: telegramId,
-      date: new Date().toLocaleDateString()
-    }));
-    alert('Диплом будет отправлен вам в Telegram!');
-  } else {
-    // Fallback для браузера (обычное скачивание)
-    downloadDiplomaLocally(userName, finalScore, total);
-  }
-  
-  closeDiplomaModal();
-}
-
-// Fallback для браузера (если нужно)
-function downloadDiplomaLocally(userName, finalScore, total) {
+  // Создаём контейнер для диплома
   const diplomaDiv = document.createElement('div');
   diplomaDiv.style.position = 'absolute';
   diplomaDiv.style.left = '-9999px';
@@ -429,23 +408,45 @@ function downloadDiplomaLocally(userName, finalScore, total) {
 
   document.body.appendChild(diplomaDiv);
 
-  html2canvas(diplomaDiv, {
-    scale: 2,
-    backgroundColor: null,
-    useCORS: true,
-    allowTaint: false
-  })
-    .then(canvas => {
+  try {
+    const canvas = await html2canvas(diplomaDiv, {
+      scale: 2,
+      backgroundColor: null,
+      useCORS: true,
+      allowTaint: false
+    });
+    
+    document.body.removeChild(diplomaDiv);
+    
+    // Конвертируем canvas в Base64
+    const base64 = canvas.toDataURL('image/png').split(',')[1];
+    
+    // Отправляем данные боту
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.sendData(JSON.stringify({
+        event: 'generate_diploma',
+        nickname: userName,
+        score: finalScore,
+        total: total,
+        base64: base64
+      }));
+      
+      alert('Диплом отправлен! Бот пришлёт его вам в чат.');
+    } else {
+      // Fallback для браузера
       const link = document.createElement('a');
       link.download = `diplom_${userName}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-      document.body.removeChild(diplomaDiv);
-    })
-    .catch(err => {
-      console.error('Ошибка генерации диплома:', err);
-      document.body.removeChild(diplomaDiv);
-    });
+      alert('Диплом скачан!');
+    }
+    
+    closeDiplomaModal();
+  } catch (err) {
+    console.error('Ошибка генерации диплома:', err);
+    document.body.removeChild(diplomaDiv);
+    alert('Ошибка при создании диплома. Попробуйте позже.');
+  }
 }
 
 // ====== Lifecycle ======
@@ -455,7 +456,6 @@ onMounted(async () => {
 </script>
 
 <style>
-/* Стили без изменений, они уже есть в твоём коде */
 @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 
 @keyframes fadeSlideDown {
