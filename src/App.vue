@@ -414,7 +414,7 @@ async function submitDiploma() {
   diplomaDiv.style.position = 'absolute';
   diplomaDiv.style.left = '-9999px';
   diplomaDiv.style.top = '0';
-  diplomaDiv.style.width = '1000px';
+  diplomaDiv.style.width = '800px';
   diplomaDiv.style.height = '600px';
   diplomaDiv.style.backgroundImage = 'url(/diplom.jpg)';
   diplomaDiv.style.backgroundSize = 'cover';
@@ -428,7 +428,7 @@ async function submitDiploma() {
       <h2 style="font-size: 30px; font-weight: 600; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
     </div>
     <div style="position: absolute; bottom: 73px; left: -415px; right: 0;">
-      <p style="font-size: 15px; font-weight: 400">${new Date().toLocaleDateString()}</p>
+      <p style="font-size: 20px; font-weight: 400">${new Date().toLocaleDateString()}</p>
     </div>
   `;
 
