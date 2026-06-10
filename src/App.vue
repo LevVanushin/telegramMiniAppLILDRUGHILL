@@ -378,7 +378,7 @@ const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN; // Твой токе�
 async function submitDiploma() {
   if (!nickname.value.trim()) return;
 
-  const finalScore = (score.value * 5) || (progress?.finalScore * 5);
+  const finalScore =(progress?.finalScore * 5) ||  (score.value * 5);
   const total = data.value.length * 5;
   const userName = nickname.value.trim();
   const telegramId = getTelegramId();
