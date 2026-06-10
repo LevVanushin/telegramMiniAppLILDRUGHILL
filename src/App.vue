@@ -475,6 +475,7 @@ diplomaDiv.innerHTML = `
     formData.append('caption', `🎓 *Диплом для ${userName}*\nРезультат: ${finalScore} из ${total} баллов`);
     formData.append('parse_mode', 'Markdown');
     
+    
     // Отправляем фото через Telegram Bot API
     const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
       method: 'POST',
