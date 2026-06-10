@@ -267,7 +267,10 @@ async function loadSessionFromSupabase() {
 
 // ====== Логика викторины ======
 function handleAnswer(selectedText) {
-  if (!currentQuestion.value) return;
+  if (!currentQuestion.value) { 
+    quizFinished = true;
+    return
+  }
 
   const optionMap = {
     [currentQuestion.value.option_a]: 'A',
@@ -292,7 +295,7 @@ function handleAnswer(selectedText) {
     saveQuizProgress();
   } else {
     quizFinished.value = true;
-    quizCompleted.value = false
+    quizCompleted.value = false;
     saveQuizProgress();
   }
 }
