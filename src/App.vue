@@ -393,7 +393,7 @@ async function submitDiploma() {
   diplomaDiv.style.position = 'absolute';
   diplomaDiv.style.left = '-9999px';
   diplomaDiv.style.top = '0';
-  diplomaDiv.style.width = '800px';
+  diplomaDiv.style.width = '1280px';
   diplomaDiv.style.height = '600px';
   diplomaDiv.style.backgroundImage = 'url(/diplom.jpg)';
   diplomaDiv.style.backgroundSize = 'cover';
@@ -403,7 +403,7 @@ async function submitDiploma() {
   diplomaDiv.style.textAlign = 'center';
 
   diplomaDiv.innerHTML = `
-    <div style="position: absolute; top: 260px; left: 0; right: 0;">
+    <div style="position: absolute; top: 270px; left: 0; right: 0;">
       <h2 style="font-size: 36px; font-weight: 600; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
     </div>
     <div style="position: absolute; bottom: 80px; left: -400px; right: 0;">
