@@ -371,7 +371,6 @@ onMounted(async () => {
   border: none;
   border-radius: 20px;
   padding: 16px 20px;
-  text-align: left;
   font-size: 16px;
   font-weight: 600;
   color: #f0f3ff;
