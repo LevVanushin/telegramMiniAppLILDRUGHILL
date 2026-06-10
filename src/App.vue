@@ -61,7 +61,7 @@
           <button class="button_sert" @click="submitDiploma" :disabled="!nickname || isSending || remainingAttempts <= 0">
             {{ isSending ? 'Отправляем...' : `Отправить (осталось: ${remainingAttempts})` }}
           </button>
-          <button class="button_sert cancel" @click="closeDiplomaModal">Отмена</button>
+          <button class="button_sert cancel" @click="cancelDiploma">Отмена</button>
         </div>
         <p class="armyCaption">lildrughill army - off fan page</p>
       </div>
@@ -104,6 +104,7 @@ const showDiplomaModal = ref(false);
 const nickname = ref('');
 const isSending = ref(false);
 const remainingAttempts = ref(5); // Максимум 5 попыток
+let cancelRequest = false; // Флаг отмены
 
 // ====== Глобальная переменная — данные сессии из Supabase ======
 const supabaseSessionData = ref(null);
@@ -371,10 +372,17 @@ function onSubscriptionVerified() {
 function openDiplomaModal() {
   nickname.value = '';
   showDiplomaModal.value = true;
+  cancelRequest = false; // Сбрасываем флаг отмены при открытии
 }
 
 function closeDiplomaModal() {
   showDiplomaModal.value = false;
+}
+
+// Отмена отправки
+function cancelDiploma() {
+  cancelRequest = true;
+  closeDiplomaModal();
 }
 
 // Функция отправки диплома через прямой вызов API бота
@@ -399,6 +407,7 @@ async function submitDiploma() {
   }
 
   isSending.value = true;
+  cancelRequest = false;
 
   // Создаём контейнер для диплома
   const diplomaDiv = document.createElement('div');
@@ -407,7 +416,7 @@ async function submitDiploma() {
   diplomaDiv.style.top = '0';
   diplomaDiv.style.width = '800px';
   diplomaDiv.style.height = '600px';
-  diplomaDiv.style.backgroundImage = 'url(/diplom.png)';
+  diplomaDiv.style.backgroundImage = 'url(/diplom.jpg)';
   diplomaDiv.style.backgroundSize = 'cover';
   diplomaDiv.style.backgroundPosition = 'center';
   diplomaDiv.style.color = 'white';
@@ -415,11 +424,11 @@ async function submitDiploma() {
   diplomaDiv.style.textAlign = 'center';
 
   diplomaDiv.innerHTML = `
-    <div style="position: absolute; top: 257px; left: 0; right: 0;">
-      <h2 style="font-size: 30px; font-weight: 600; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
+    <div style="position: absolute; top: 273px; left: 0; right: 0;">
+      <h2 style="font-size: 36px; font-weight: 600; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
     </div>
-    <div style="position: absolute; bottom: 100px; left: -455px; right: 0;">
-      <p style="font-size: 15px; font-weight: 400" font-family: Playfair Display, Cormorant Garamond, Georgia, serif;>${new Date().toLocaleDateString()}</p>
+    <div style="position: absolute; bottom: 73px; left: -445px; right: 0;">
+      <p style="font-size: 20px; font-weight: 600">${new Date().toLocaleDateString()}</p>
     </div>
   `;
 
@@ -428,6 +437,12 @@ async function submitDiploma() {
 
 
   try {
+    // Проверяем, не отменено ли
+    if (cancelRequest) {
+      document.body.removeChild(diplomaDiv);
+      return;
+    }
+    
     const canvas = await html2canvas(diplomaDiv, {
       scale: 2,
       backgroundColor: null,
@@ -435,10 +450,19 @@ async function submitDiploma() {
       allowTaint: false
     });
     
+    // Проверяем, не отменено ли
+    if (cancelRequest) {
+      document.body.removeChild(diplomaDiv);
+      return;
+    }
+    
     document.body.removeChild(diplomaDiv);
     
     // Конвертируем canvas в Blob
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    
+    // Проверяем, не отменено ли
+    if (cancelRequest) return;
     
     // Создаём FormData для отправки файла
     const formData = new FormData();
@@ -453,6 +477,9 @@ async function submitDiploma() {
       body: formData
     });
     
+    // Проверяем, не отменено ли
+    if (cancelRequest) return;
+    
     const result = await response.json();
     
     if (result.ok) {
@@ -465,9 +492,11 @@ async function submitDiploma() {
     
     closeDiplomaModal();
   } catch (err) {
-    console.error('Ошибка:', err);
+    if (!cancelRequest) {
+      console.error('Ошибка:', err);
+      alert('Ошибка при создании или отправке диплома');
+    }
     document.body.removeChild(diplomaDiv);
-    alert('Ошибка при создании или отправке диплома');
   } finally {
     isSending.value = false;
   }
