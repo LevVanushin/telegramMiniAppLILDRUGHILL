@@ -15,14 +15,14 @@
         <p class="score">Баллы: {{ progress.finalScore * 5 }} из {{ data.length * 5 }}</p>
         <p class="thankyou-message">Благодарим за прохождение. Желаем удачи всем на реальных экзаменах!</p>
         <button v-if="(progress.finalScore * 5) >= 60" class="button_sert" @click="sert">Получить диплом</button>
-        <div v-if="sertNick" class="results">
-        <p>Введи ник:</p>
-        <input type="input">
-      </div>
+        
         <p class="armyCaption">lildrughill army - off fan page</p>
       </div>
 
-      
+      <div v-if="sertNick" class="results">
+        <p>Введи ник:</p>
+        <input type="input">
+      </div>
       
       <quizCard 
         v-else-if="data.length > 0 && !quizFinished"
@@ -76,6 +76,10 @@ const completedScore = ref(0);
 const sertNick = ref(false)
 function sert(){
   sertNick.value = true;
+  if (quizFinished && quizCompleted){
+    quizFinished.value = false;
+    quizCompleted.value = false;
+  }
   return 
 }
 
