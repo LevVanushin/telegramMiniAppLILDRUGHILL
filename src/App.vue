@@ -14,7 +14,7 @@
         <h2>Экзамен уже пройден!</h2>
         <p class="score">Баллы: {{ progress.finalScore * 5 }} из {{ data.length * 5 }}</p>
         <p class="thankyou-message">Благодарим за прохождение. Желаем удачи всем на реальных экзаменах!</p>
-        <button v-if="(progress.finalScore * 5) >= 60">Получить диплом</button>
+        <button v-if="(progress.finalScore * 5) >= 60" class="button_sert">Получить диплом</button>
 
         <p class="armyCaption">lildrughill army - off fan page</p>
       </div>
@@ -360,6 +360,28 @@ onMounted(async () => {
   align-items: center;
   gap: 30px;
   padding: 0px 30px 130px 30px;
+}
+
+.button_sert{
+  text-align: center;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+
+  position: relative;
+  background: linear-gradient(105deg, #1e2a5e 0%, #172147 100%);
+  border: none;
+  border-radius: 20px;
+  padding: 16px 20px;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f0f3ff;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+  box-shadow: 0 6px 0 #182043;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
 }
 
 .loading, .error {
