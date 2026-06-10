@@ -387,7 +387,7 @@ function submitDiploma() {
   diplomaDiv.style.top = '0';
   diplomaDiv.style.width = '800px';
   diplomaDiv.style.height = '600px';
-  diplomaDiv.style.backgroundImage = 'url(/diplom.jpg)';
+  diplomaDiv.style.backgroundImage = 'url(../diplom.jpg)';
   diplomaDiv.style.backgroundSize = 'cover';
   diplomaDiv.style.backgroundPosition = 'center';
   diplomaDiv.style.color = 'white';
@@ -418,7 +418,7 @@ function submitDiploma() {
     .then(canvas => {
       const link = document.createElement('a');
       link.download = `diplom_${userName}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = canvas.toDataURL('/downloads');
       link.click();
       document.body.removeChild(diplomaDiv);
       closeDiplomaModal();
