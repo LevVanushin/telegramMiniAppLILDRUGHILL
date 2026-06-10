@@ -427,7 +427,7 @@ async function submitDiploma() {
     <div style="position: absolute; top: 303px; left: 0; right: 0;">
       <h2 style="font-size: 30px; font-weight: 600; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
     </div>
-    <div style="position: absolute; bottom: 85px; left: -475px; right: 0;">
+    <div style="position: absolute; bottom: 85px; left: 0;">
       <p style="font-size: 20px; text-align:left; font-weight: 400">${new Date().toLocaleDateString()}</p>
     </div>
   `;
