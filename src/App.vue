@@ -413,6 +413,7 @@ async function submitDiploma() {
 
   document.body.appendChild(diplomaDiv);
 
+  
   try {
     const canvas = await html2canvas(diplomaDiv, {
       scale: 2,
