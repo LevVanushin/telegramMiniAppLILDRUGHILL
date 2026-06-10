@@ -372,13 +372,21 @@ function closeDiplomaModal() {
   showDiplomaModal.value = false;
 }
 
-// Функция отправки диплома через бота
+// Функция отправки диплома через прямой вызов API бота
+const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN; // Твой токен
+
 async function submitDiploma() {
   if (!nickname.value.trim()) return;
 
   const finalScore = (score.value * 5) || (progress?.finalScore * 5);
   const total = data.value.length * 5;
   const userName = nickname.value.trim();
+  const telegramId = getTelegramId();
+
+  if (!telegramId) {
+    alert('Не удалось определить ваш Telegram ID');
+    return;
+  }
 
   // Создаём контейнер для диплома
   const diplomaDiv = document.createElement('div');
@@ -418,34 +426,36 @@ async function submitDiploma() {
     
     document.body.removeChild(diplomaDiv);
     
-    // Конвертируем canvas в Base64
-    const base64 = canvas.toDataURL('image/png').split(',')[1];
+    // Конвертируем canvas в Blob
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
     
-    // Отправляем данные боту
-    if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.sendData(JSON.stringify({
-        event: 'generate_diploma',
-        nickname: userName,
-        score: finalScore,
-        total: total,
-        base64: base64
-      }));
-      
-      alert('Диплом отправлен! Бот пришлёт его вам в чат.');
+    // Создаём FormData для отправки файла
+    const formData = new FormData();
+    formData.append('chat_id', telegramId);
+    formData.append('photo', blob, `diplom_${userName}.png`);
+    formData.append('caption', `🎓 *Диплом для ${userName}*\nРезультат: ${finalScore} из ${total} баллов`);
+    formData.append('parse_mode', 'Markdown');
+    
+    // Отправляем фото через Telegram Bot API
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    const result = await response.json();
+    
+    if (result.ok) {
+      alert('✅ Диплом отправлен в Telegram! Проверьте чат с ботом.');
     } else {
-      // Fallback для браузера
-      const link = document.createElement('a');
-      link.download = `diplom_${userName}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      alert('Диплом скачан!');
+      console.error('Ошибка:', result);
+      alert('❌ Ошибка при отправке диплома. Попробуйте позже.');
     }
     
     closeDiplomaModal();
   } catch (err) {
-    console.error('Ошибка генерации диплома:', err);
+    console.error('Ошибка:', err);
     document.body.removeChild(diplomaDiv);
-    alert('Ошибка при создании диплома. Попробуйте позже.');
+    alert('Ошибка при создании или отправке диплома');
   }
 }
 
