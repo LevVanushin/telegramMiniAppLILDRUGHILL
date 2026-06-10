@@ -423,7 +423,7 @@ async function submitDiploma() {
   diplomaDiv.style.textAlign = 'center';
 
 diplomaDiv.innerHTML = `
-<img src="/diplom.png" style="position: absolute; width: 100%; height: 100%; object-fit: cover; z-index: -1;">
+<img src="/diplom.png" style="position: absolute; width: 100%; height: 100%; left: 0; top: 0; object-fit: cover; z-index: -1;">
   <div style="position: absolute; top: 450px; left: 0; right: 0;">
     <h2 style="font-size: 54px; font-weight: 600; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
   </div>
