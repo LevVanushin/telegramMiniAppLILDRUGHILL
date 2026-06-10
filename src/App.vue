@@ -387,14 +387,14 @@ function submitDiploma() {
   diplomaDiv.style.top = '0';
   diplomaDiv.style.width = '800px';
   diplomaDiv.style.height = '600px';
-  diplomaDiv.style.backgroundImage = 'url(.\lildrughill-mini-app\public\diplom.jpg)';
+  diplomaDiv.style.backgroundImage = 'url(/diplom.jpg)';  // ← ИСПРАВЛЕНО: просто /diplom.jpg
   diplomaDiv.style.backgroundSize = 'cover';
   diplomaDiv.style.backgroundPosition = 'center';
   diplomaDiv.style.color = 'white';
   diplomaDiv.style.fontFamily = 'Georgia, serif';
   diplomaDiv.style.textAlign = 'center';
 
-  // Текст поверх диплома (откорректируй top под свой макет)
+  // Текст поверх диплома
   diplomaDiv.innerHTML = `
     <div style="position: absolute; top: 280px; left: 0; right: 0;">
       <h2 style="font-size: 36px; margin: 0; color: #ffd700;">${userName}</h2>
@@ -418,7 +418,7 @@ function submitDiploma() {
     .then(canvas => {
       const link = document.createElement('a');
       link.download = `diplom_${userName}.png`;
-      link.href = canvas.toDataURL('/image/png');
+      link.href = canvas.toDataURL('image/png');  // ← ИСПРАВЛЕНО: 'image/png' без слеша
       link.click();
       document.body.removeChild(diplomaDiv);
       closeDiplomaModal();
