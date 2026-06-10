@@ -411,6 +411,7 @@ async function submitDiploma() {
     </div>
   `;
 
+  
   document.body.appendChild(diplomaDiv);
 
 
