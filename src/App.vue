@@ -387,7 +387,7 @@ function submitDiploma() {
   diplomaDiv.style.top = '0';
   diplomaDiv.style.width = '800px';
   diplomaDiv.style.height = '600px';
-  diplomaDiv.style.backgroundImage = 'url(../diplom.jpg)';
+  diplomaDiv.style.backgroundImage = 'url(.\lildrughill-mini-app\public\diplom.jpg)';
   diplomaDiv.style.backgroundSize = 'cover';
   diplomaDiv.style.backgroundPosition = 'center';
   diplomaDiv.style.color = 'white';
