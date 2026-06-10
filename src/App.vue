@@ -18,11 +18,7 @@
         
         <p class="armyCaption">lildrughill army - off fan page</p>
       </div>
-
-      <div v-if="sertNick" class="results">
-        <p>Введи ник:</p>
-        <input type="input">
-      </div>
+      
       
       <quizCard 
         v-else-if="data.length > 0 && !quizFinished"
@@ -46,7 +42,10 @@
       <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
       <div v-else-if="!loading" class="error">Нет данных</div>
     </template>
-
+    <div v-if="sertNick" class="results">
+        <p>Введи ник:</p>
+        <input type="input">
+      </div>
 
   </div>
   <div class="shadow"></div>
