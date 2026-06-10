@@ -419,7 +419,7 @@ async function submitDiploma() {
       <h2 style="font-size: 30px; font-weight: 600; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
     </div>
     <div style="position: absolute; bottom: 100px; left: -455px; right: 0;">
-      <p style="font-size: 15px; font-weight: 400" font-family: Playfair Display, Cormorant Garamond, Georgia, serif;>${new Date().now()}</p>
+      <p style="font-size: 15px; font-weight: 400" font-family: Playfair Display, Cormorant Garamond, Georgia, serif;>${new Date().toLocaleDateString()}</p>
     </div>
   `;
 
