@@ -365,7 +365,7 @@ onMounted(async () => {
 .button_sert{
   text-align: center;
   font-family: Georgia, 'Times New Roman', Times, serif;
-
+  align-self: center;
   background: linear-gradient(105deg, #1e2a5e 0%, #37416f 100%);
   border: none;
   border-radius: 20px;
