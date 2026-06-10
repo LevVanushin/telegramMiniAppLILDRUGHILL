@@ -380,7 +380,6 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 14px;
-  overflow: hidden;
 }
 
 .loading, .error {
