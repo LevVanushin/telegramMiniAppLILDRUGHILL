@@ -416,7 +416,6 @@ async function submitDiploma() {
   diplomaDiv.style.top = '0';
   diplomaDiv.style.width = '1300px';
   diplomaDiv.style.height = '1000px';
-  diplomaDiv.style.backgroundImage = 'url(\diplom.PNG)';
   diplomaDiv.style.backgroundSize = 'cover';
   diplomaDiv.style.backgroundPosition = 'center';
   diplomaDiv.style.color = 'white';
@@ -424,6 +423,7 @@ async function submitDiploma() {
   diplomaDiv.style.textAlign = 'center';
 
 diplomaDiv.innerHTML = `
+<img src="/diplom.png" style="position: absolute; width: 100%; height: 100%; object-fit: cover; z-index: -1;">
   <div style="position: absolute; top: 450px; left: 0; right: 0;">
     <h2 style="font-size: 54px; font-weight: 600; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
   </div>
