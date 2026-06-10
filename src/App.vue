@@ -58,7 +58,9 @@
           />
         </div>
         <div class="modal-buttons">
-          <button class="button_sert" @click="submitDiploma" :disabled="!nickname">Отправить</button>
+          <button class="button_sert" @click="submitDiploma" :disabled="!nickname || isSending || remainingAttempts <= 0">
+            {{ isSending ? 'Отправляем...' : `Отправить (осталось: ${remainingAttempts})` }}
+          </button>
           <button class="button_sert cancel" @click="closeDiplomaModal">Отмена</button>
         </div>
         <p class="armyCaption">lildrughill army - off fan page</p>
@@ -100,6 +102,8 @@ function sert() {
 // Модальное окно диплома
 const showDiplomaModal = ref(false);
 const nickname = ref('');
+const isSending = ref(false);
+const remainingAttempts = ref(5); // Максимум 5 попыток
 
 // ====== Глобальная переменная — данные сессии из Supabase ======
 const supabaseSessionData = ref(null);
@@ -378,6 +382,11 @@ const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN; // Твой токе�
 
 async function submitDiploma() {
   if (!nickname.value.trim()) return;
+  if (isSending.value) return;
+  if (remainingAttempts.value <= 0) {
+    alert('Вы исчерпали лимит попыток (5).');
+    return;
+  }
 
   const finalScore =(progress?.finalScore * 5) ||  (score.value * 5);
   const total = data.value.length * 5;
@@ -388,6 +397,8 @@ async function submitDiploma() {
     alert('Не удалось определить ваш Telegram ID');
     return;
   }
+
+  isSending.value = true;
 
   // Создаём контейнер для диплома
   const diplomaDiv = document.createElement('div');
@@ -407,7 +418,7 @@ async function submitDiploma() {
     <div style="position: absolute; top: 265px; left: 0; right: 0;">
       <h2 style="font-size: 36px; font-weight: 600; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
     </div>
-    <div style="position: absolute; bottom: 73px; left: -500px; right: 0;">
+    <div style="position: absolute; bottom: 73px; left: -450px; right: 0;">
       <p style="font-size: 20px; font-weight: 600">${new Date().toLocaleDateString()}</p>
     </div>
   `;
@@ -445,7 +456,8 @@ async function submitDiploma() {
     const result = await response.json();
     
     if (result.ok) {
-      alert('✅ Диплом отправлен в Telegram! Проверьте чат с ботом.');
+      remainingAttempts.value--;
+      alert(`✅ Диплом отправлен в Telegram! Осталось попыток: ${remainingAttempts.value}`);
     } else {
       console.error('Ошибка:', result);
       alert('❌ Ошибка при отправке диплома. Попробуйте позже.');
@@ -456,6 +468,8 @@ async function submitDiploma() {
     console.error('Ошибка:', err);
     document.body.removeChild(diplomaDiv);
     alert('Ошибка при создании или отправке диплома');
+  } finally {
+    isSending.value = false;
   }
 }
 
