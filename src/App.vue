@@ -444,11 +444,14 @@ async function submitDiploma() {
     }
     
     const canvas = await html2canvas(diplomaDiv, {
-      scale: 2,
-      backgroundColor: null,
-      useCORS: true,
-      allowTaint: false
-    });
+  scale: 4,                    // Увеличь с 2 до 3-4 для лучшего качества
+  backgroundColor: null,
+  useCORS: true,
+  allowTaint: false,
+  logging: false,
+  imageTimeout: 0,
+  pixelRatio: window.devicePixelRatio || 2  // Используем родное разрешение экрана
+});
     
     // Проверяем, не отменено ли
     if (cancelRequest) {
