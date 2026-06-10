@@ -76,8 +76,7 @@ const sertNick = ref(false)
 function sert(){
   sertNick.value = true;
   if (quizFinished && quizCompleted){
-    quizFinished.value = false;
-    quizCompleted.value = false;
+    quizCard.style.display = 'none'
   }
   return 
 }
