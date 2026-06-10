@@ -367,7 +367,7 @@ onMounted(async () => {
   text-align: center;
   font-family: Georgia, 'Times New Roman', Times, serif;
   align-self: center;
-  background: linear-gradient(105deg, #1e2a5e 0%, #242c52 100%);
+  background: linear-gradient(105deg, #1e2a5e 0%, #30396b 100%);
   border: none;
   padding: 20px 0px;
   border-radius: 20px;
