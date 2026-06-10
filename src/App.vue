@@ -418,7 +418,7 @@ function submitDiploma() {
     .then(canvas => {
       const link = document.createElement('a');
       link.download = `diplom_${userName}.png`;
-      link.href = canvas.toDataURL('/downloads');
+      link.href = canvas.toDataURL('/image/png');
       link.click();
       document.body.removeChild(diplomaDiv);
       closeDiplomaModal();
