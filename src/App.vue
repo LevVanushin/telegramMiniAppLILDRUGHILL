@@ -427,7 +427,7 @@ diplomaDiv.innerHTML = `
   <div style="position: absolute; top: 450px; left: 0; right: 0;">
     <h2 style="font-size: 54px; font-weight: 600; font-family: Georgia, 'Times New Roman', Times, serif; margin: 0; color: white;">${userName}</h2>
   </div>
-  <div style="position: absolute; bottom: 123px; left: 250px;">
+  <div style="position: absolute; bottom: 123px; left: 210px;">
     <p style="font-size: 30px; text align: left; font-weight: 600">${new Date().toLocaleDateString()}</p>
   </div>
 `;
