@@ -369,6 +369,7 @@ onMounted(async () => {
   align-self: center;
   background: linear-gradient(105deg, #1e2a5e 0%, #37416f 100%);
   border: none;
+  padding: 20px 0px;
   border-radius: 20px;
   font-size: 16px;
   font-weight: 600;
