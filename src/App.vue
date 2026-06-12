@@ -106,13 +106,13 @@ const isSending = ref(false);
 const remainingAttempts = ref(5);
 let cancelRequest = false;
 
-// ====== ПРЕДЗАГРУЗКА ДИПЛОМА ======
-let preloadedDiplomaBlob = null;       // Кэш сжатого Blob
-let preloadPromise = null;             // Чтобы не запускать повторно
+// ====== ПРЕДЗАГРУЗКА ФОНА ДИПЛОМА (без текста) ======
+let cachedBackgroundCanvas = null; // Кэшируем фон без текста
 
-// Генерация диплома (возвращает Blob)
-async function generateDiplomaBlob(userName, finalScore, total) {
-  // Создаём контейнер для диплома
+// Функция для создания фона диплома (без динамического текста)
+async function preloadBackground() {
+  if (cachedBackgroundCanvas) return cachedBackgroundCanvas;
+  
   const diplomaDiv = document.createElement('div');
   diplomaDiv.style.position = 'absolute';
   diplomaDiv.style.left = '-9999px';
@@ -125,19 +125,11 @@ async function generateDiplomaBlob(userName, finalScore, total) {
   diplomaDiv.style.color = 'white';
   diplomaDiv.style.fontFamily = 'Georgia, serif';
   diplomaDiv.style.textAlign = 'center';
-
-  diplomaDiv.innerHTML = `
-    <div style="position: absolute; top: 450px; left: 0; right: 0;">
-      <h2 style="font-size: 54px; font-weight: 600; font-family: 'Geologica', sans-serif; margin: 0; color: white;">${userName}</h2>
-    </div>
-    <div style="position: absolute; bottom: 123px; left: 195px;">
-      <p style="font-size: 30px; text-align: left; font-weight: 600">${new Date().toLocaleDateString()}</p>
-    </div>
-  `;
+  // Пустой фон без текста
+  diplomaDiv.innerHTML = '';
   document.body.appendChild(diplomaDiv);
-
+  
   try {
-    // Оптимизация: scale = 2 (вместо 4) – достаточно для экрана телефона
     const canvas = await html2canvas(diplomaDiv, {
       scale: 2,
       backgroundColor: null,
@@ -147,32 +139,46 @@ async function generateDiplomaBlob(userName, finalScore, total) {
       imageTimeout: 0,
       pixelRatio: window.devicePixelRatio || 2
     });
-    // Конвертируем в Blob с высоким сжатием (JPEG, качество 0.8)
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
-    return blob;
+    cachedBackgroundCanvas = canvas;
+    console.log('✅ Фон диплома предзагружен');
+    return canvas;
   } finally {
     document.body.removeChild(diplomaDiv);
   }
 }
 
-// Фоновая предзагрузка диплома (вызывается после завершения теста)
-async function preloadDiploma() {
-  if (preloadPromise) return preloadPromise;
-  // Определяем итоговый счёт
-  const finalScore = (progress?.finalScore * 5) || (score.value * 5);
-  const total = data.value.length * 5;
-  if (finalScore < 60) return; // диплом не нужен
+// Функция для добавления текста на готовый фон (быстро)
+async function addTextToDiploma(userName, finalScore, total) {
+  // Берём кэшированный фон
+  const backgroundCanvas = await preloadBackground();
   
-  const tempNick = nickname.value.trim() || 'участник';
-  preloadPromise = generateDiplomaBlob(tempNick, finalScore, total)
-    .then(blob => {
-      preloadedDiplomaBlob = blob;
-      console.log('✅ Диплом предзагружен, размер:', (blob.size / 1024).toFixed(1), 'KB');
-    })
-    .catch(err => console.warn('Предзагрузка диплома не удалась:', err))
-    .finally(() => { preloadPromise = null; });
+  // Создаём новый canvas поверх фона
+  const canvas = document.createElement('canvas');
+  canvas.width = backgroundCanvas.width;
+  canvas.height = backgroundCanvas.height;
+  const ctx = canvas.getContext('2d');
   
-  return preloadPromise;
+  // Рисуем фон
+  ctx.drawImage(backgroundCanvas, 0, 0);
+  
+  // Добавляем текст (это очень быстро, не требует html2canvas)
+  ctx.font = '600 54px "Geologica", sans-serif';
+  ctx.fillStyle = 'white';
+  ctx.textAlign = 'center';
+  ctx.fillText(userName, canvas.width / 2, 450);
+  
+  ctx.font = '600 30px "Geologica", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(new Date().toLocaleDateString(), 195, canvas.height - 123);
+  
+  // Конвертируем в Blob с сжатием
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+  return blob;
+}
+
+// Запускаем предзагрузку фона при монтировании или после загрузки данных
+async function initBackgroundPreload() {
+  await preloadBackground();
 }
 
 // ====== Глобальная переменная — данные сессии из Supabase ======
@@ -433,16 +439,11 @@ function onSubscriptionVerified() {
   subscriptionVerified.value = true;
 }
 
-// ====== Логика диплома (с предзагрузкой и быстрой отправкой) ======
+// ====== Логика диплома (с быстрой генерацией после ввода ника) ======
 function openDiplomaModal() {
   nickname.value = '';
   showDiplomaModal.value = true;
   cancelRequest = false;
-  // Если диплом ещё не предзагружен, запускаем (на всякий случай)
-  if (!preloadedDiplomaBlob && !preloadPromise) {
-    const finalScore = (progress?.finalScore * 5) || (score.value * 5);
-    if (finalScore >= 60) preloadDiploma();
-  }
 }
 
 function closeDiplomaModal() {
@@ -478,18 +479,13 @@ async function submitDiploma() {
   cancelRequest = false;
 
   try {
-    // 1. Используем предзагруженный Blob, если есть, иначе генерируем на лету
-    let imageBlob = preloadedDiplomaBlob;
-    if (!imageBlob) {
-      console.log('⚠️ Предзагрузки нет, генерируем сейчас...');
-      imageBlob = await generateDiplomaBlob(userName, finalScore, total);
-    } else {
-      console.log('⚡ Отправка из предзагруженного кэша');
-    }
-
+    // Генерируем диплом с нужным ником (фон уже закэширован, это быстро)
+    console.log('🎨 Генерируем диплом с ником:', userName);
+    const imageBlob = await addTextToDiploma(userName, finalScore, total);
+    
     if (cancelRequest) return;
 
-    // 2. Отправляем через API бота
+    // Отправляем через API бота
     const formData = new FormData();
     formData.append('chat_id', telegramId);
     formData.append('photo', imageBlob, `diplom_${userName}.jpg`);
@@ -522,25 +518,16 @@ async function submitDiploma() {
   }
 }
 
-// ====== НАБЛЮДАТЕЛЬ: предзагрузка диплома при завершении теста ======
-watch([quizFinished, quizCompleted], async ([finished, completed]) => {
-  if (finished || completed) {
-    const currentScore = (progress?.finalScore * 5) || (score.value * 5);
-    if (currentScore >= 60) {
-      // Ждём, чтобы ник успел ввести (но в любом случае предзагружаем с временным ником)
-      await preloadDiploma();
-    }
-  }
-});
-
 // ====== Lifecycle ======
 onMounted(async () => {
   await getData();
+  // Предзагружаем фон диплома в фоне (без текста)
+  initBackgroundPreload();
 });
 </script>
 
 <style>
-/* Все стили остаются БЕЗ ИЗМЕНЕНИЙ */
+/* Все стили остаются без изменений */
 @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 
 @keyframes fadeSlideDown {
