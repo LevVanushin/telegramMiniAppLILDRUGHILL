@@ -74,7 +74,7 @@
 import { supabase } from "./lib/supabase.js";
 import quizCard from "./components/quizCard.vue";
 import SubscriptionCheck from "./components/SubscriptionCheck.vue";
-import { onMounted, ref, computed, watch } from "vue";
+import { onMounted, ref, computed } from "vue";
 import html2canvas from "html2canvas";
 
 // ====== Конфигурация ======
@@ -105,81 +105,6 @@ const nickname = ref('');
 const isSending = ref(false);
 const remainingAttempts = ref(5);
 let cancelRequest = false;
-
-// ====== ПРЕДЗАГРУЗКА ФОНА ДИПЛОМА (без текста) ======
-let cachedBackgroundCanvas = null; // Кэшируем фон без текста
-
-// Функция для создания фона диплома (без динамического текста)
-async function preloadBackground() {
-  if (cachedBackgroundCanvas) return cachedBackgroundCanvas;
-  
-  const diplomaDiv = document.createElement('div');
-  diplomaDiv.style.position = 'absolute';
-  diplomaDiv.style.left = '-9999px';
-  diplomaDiv.style.top = '0';
-  diplomaDiv.style.width = '1300px';
-  diplomaDiv.style.height = '1000px';
-  diplomaDiv.style.backgroundImage = 'url(/diplom.jpg)';
-  diplomaDiv.style.backgroundSize = 'cover';
-  diplomaDiv.style.backgroundPosition = 'center';
-  diplomaDiv.style.color = 'white';
-  diplomaDiv.style.fontFamily = 'Georgia, serif';
-  diplomaDiv.style.textAlign = 'center';
-  // Пустой фон без текста
-  diplomaDiv.innerHTML = '';
-  document.body.appendChild(diplomaDiv);
-  
-  try {
-    const canvas = await html2canvas(diplomaDiv, {
-      scale: 2,
-      backgroundColor: null,
-      useCORS: true,
-      allowTaint: false,
-      logging: false,
-      imageTimeout: 0,
-      pixelRatio: window.devicePixelRatio || 2
-    });
-    cachedBackgroundCanvas = canvas;
-    console.log('✅ Фон диплома предзагружен');
-    return canvas;
-  } finally {
-    document.body.removeChild(diplomaDiv);
-  }
-}
-
-// Функция для добавления текста на готовый фон (быстро)
-async function addTextToDiploma(userName, finalScore, total) {
-  // Берём кэшированный фон
-  const backgroundCanvas = await preloadBackground();
-  
-  // Создаём новый canvas поверх фона
-  const canvas = document.createElement('canvas');
-  canvas.width = backgroundCanvas.width;
-  canvas.height = backgroundCanvas.height;
-  const ctx = canvas.getContext('2d');
-  
-  // Рисуем фон
-  ctx.drawImage(backgroundCanvas, 0, 0);
-  
-  // Добавляем текст (это очень быстро, не требует html2canvas)
-  ctx.font = '600 54px "Geologica", sans-serif';
-  ctx.fillStyle = 'white';
-  ctx.textAlign = 'center';
-  ctx.fillText(userName, canvas.width / 2, 450);
-  
-  ctx.font = '600 30px "Geologica", sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText(new Date().toLocaleDateString(), 195, canvas.height - 123);
-  
-  // Конвертируем в Blob с сжатием
-  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
-  return blob;
-}
-
-// Запускаем предзагрузку фона при монтировании или после загрузки данных
-async function initBackgroundPreload() {
-  await preloadBackground();
-}
 
 // ====== Глобальная переменная — данные сессии из Supabase ======
 const supabaseSessionData = ref(null);
@@ -439,7 +364,7 @@ function onSubscriptionVerified() {
   subscriptionVerified.value = true;
 }
 
-// ====== Логика диплома (с быстрой генерацией после ввода ника) ======
+// ====== Логика диплома (простая и рабочая) ======
 function openDiplomaModal() {
   nickname.value = '';
   showDiplomaModal.value = true;
@@ -456,6 +381,50 @@ function cancelDiploma() {
 }
 
 const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+
+// Функция генерации диплома с правильным ником и датой
+async function generateDiplomaBlob(userName, finalScore, total) {
+  const diplomaDiv = document.createElement('div');
+  diplomaDiv.style.position = 'absolute';
+  diplomaDiv.style.left = '-9999px';
+  diplomaDiv.style.top = '0';
+  diplomaDiv.style.width = '1300px';
+  diplomaDiv.style.height = '1000px';
+  diplomaDiv.style.backgroundImage = 'url(/diplom.jpg)';
+  diplomaDiv.style.backgroundSize = 'cover';
+  diplomaDiv.style.backgroundPosition = 'center';
+  diplomaDiv.style.color = 'white';
+  diplomaDiv.style.fontFamily = 'Georgia, serif';
+  diplomaDiv.style.textAlign = 'center';
+
+  diplomaDiv.innerHTML = `
+    <div style="position: absolute; top: 450px; left: 0; right: 0;">
+      <h2 style="font-size: 54px; font-weight: 600; font-family: 'Geologica', sans-serif; margin: 0; color: white;">${userName}</h2>
+    </div>
+    <div style="position: absolute; bottom: 123px; left: 195px;">
+      <p style="font-size: 30px; text-align: left; font-weight: 600">${new Date().toLocaleDateString()}</p>
+    </div>
+  `;
+
+  document.body.appendChild(diplomaDiv);
+
+  try {
+    const canvas = await html2canvas(diplomaDiv, {
+      scale: 2,
+      backgroundColor: null,
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      imageTimeout: 0,
+      pixelRatio: window.devicePixelRatio || 2
+    });
+    
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+    return blob;
+  } finally {
+    document.body.removeChild(diplomaDiv);
+  }
+}
 
 async function submitDiploma() {
   if (!nickname.value.trim()) return;
@@ -479,9 +448,9 @@ async function submitDiploma() {
   cancelRequest = false;
 
   try {
-    // Генерируем диплом с нужным ником (фон уже закэширован, это быстро)
-    console.log('🎨 Генерируем диплом с ником:', userName);
-    const imageBlob = await addTextToDiploma(userName, finalScore, total);
+    // Генерируем диплом с введённым ником
+    console.log('🎨 Генерируем диплом для:', userName);
+    const imageBlob = await generateDiplomaBlob(userName, finalScore, total);
     
     if (cancelRequest) return;
 
@@ -489,7 +458,7 @@ async function submitDiploma() {
     const formData = new FormData();
     formData.append('chat_id', telegramId);
     formData.append('photo', imageBlob, `diplom_${userName}.jpg`);
-    formData.append('caption', `🎓 *Диплом для ${userName}*\nРезультат: ${finalScore} из ${total} баллов`);
+    formData.append('caption', `🎓 *Диплом для ${userName}*\nРезультат: ${finalScore} из ${total} баллов\n📅 ${new Date().toLocaleDateString()}`);
     formData.append('parse_mode', 'Markdown');
 
     const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
@@ -521,8 +490,6 @@ async function submitDiploma() {
 // ====== Lifecycle ======
 onMounted(async () => {
   await getData();
-  // Предзагружаем фон диплома в фоне (без текста)
-  initBackgroundPreload();
 });
 </script>
 
