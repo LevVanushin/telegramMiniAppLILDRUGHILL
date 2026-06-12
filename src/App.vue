@@ -74,7 +74,7 @@
 import { supabase } from "./lib/supabase.js";
 import quizCard from "./components/quizCard.vue";
 import SubscriptionCheck from "./components/SubscriptionCheck.vue";
-import { onMounted, ref, computed } from "vue";
+import { onMounted, ref, computed, watch } from "vue";
 import html2canvas from "html2canvas";
 
 // ====== Конфигурация ======
@@ -103,8 +103,77 @@ function sert() {
 const showDiplomaModal = ref(false);
 const nickname = ref('');
 const isSending = ref(false);
-const remainingAttempts = ref(5); // Максимум 5 попыток
-let cancelRequest = false; // Флаг отмены
+const remainingAttempts = ref(5);
+let cancelRequest = false;
+
+// ====== ПРЕДЗАГРУЗКА ДИПЛОМА ======
+let preloadedDiplomaBlob = null;       // Кэш сжатого Blob
+let preloadPromise = null;             // Чтобы не запускать повторно
+
+// Генерация диплома (возвращает Blob)
+async function generateDiplomaBlob(userName, finalScore, total) {
+  // Создаём контейнер для диплома
+  const diplomaDiv = document.createElement('div');
+  diplomaDiv.style.position = 'absolute';
+  diplomaDiv.style.left = '-9999px';
+  diplomaDiv.style.top = '0';
+  diplomaDiv.style.width = '1300px';
+  diplomaDiv.style.height = '1000px';
+  diplomaDiv.style.backgroundImage = 'url(/diplom.jpg)';
+  diplomaDiv.style.backgroundSize = 'cover';
+  diplomaDiv.style.backgroundPosition = 'center';
+  diplomaDiv.style.color = 'white';
+  diplomaDiv.style.fontFamily = 'Georgia, serif';
+  diplomaDiv.style.textAlign = 'center';
+
+  diplomaDiv.innerHTML = `
+    <div style="position: absolute; top: 450px; left: 0; right: 0;">
+      <h2 style="font-size: 54px; font-weight: 600; font-family: 'Geologica', sans-serif; margin: 0; color: white;">${userName}</h2>
+    </div>
+    <div style="position: absolute; bottom: 123px; left: 195px;">
+      <p style="font-size: 30px; text-align: left; font-weight: 600">${new Date().toLocaleDateString()}</p>
+    </div>
+  `;
+  document.body.appendChild(diplomaDiv);
+
+  try {
+    // Оптимизация: scale = 2 (вместо 4) – достаточно для экрана телефона
+    const canvas = await html2canvas(diplomaDiv, {
+      scale: 2,
+      backgroundColor: null,
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      imageTimeout: 0,
+      pixelRatio: window.devicePixelRatio || 2
+    });
+    // Конвертируем в Blob с высоким сжатием (JPEG, качество 0.8)
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+    return blob;
+  } finally {
+    document.body.removeChild(diplomaDiv);
+  }
+}
+
+// Фоновая предзагрузка диплома (вызывается после завершения теста)
+async function preloadDiploma() {
+  if (preloadPromise) return preloadPromise;
+  // Определяем итоговый счёт
+  const finalScore = (progress?.finalScore * 5) || (score.value * 5);
+  const total = data.value.length * 5;
+  if (finalScore < 60) return; // диплом не нужен
+  
+  const tempNick = nickname.value.trim() || 'участник';
+  preloadPromise = generateDiplomaBlob(tempNick, finalScore, total)
+    .then(blob => {
+      preloadedDiplomaBlob = blob;
+      console.log('✅ Диплом предзагружен, размер:', (blob.size / 1024).toFixed(1), 'KB');
+    })
+    .catch(err => console.warn('Предзагрузка диплома не удалась:', err))
+    .finally(() => { preloadPromise = null; });
+  
+  return preloadPromise;
+}
 
 // ====== Глобальная переменная — данные сессии из Supabase ======
 const supabaseSessionData = ref(null);
@@ -127,9 +196,7 @@ const score = computed(() => userAnswers.value.filter(a => a.isCorrect).length);
 function getTelegramId() {
   const urlParams = new URLSearchParams(window.location.search);
   let id = urlParams.get('user_id');
-  if (id) {
-    return parseInt(id);
-  }
+  if (id) return parseInt(id);
   return null;
 }
 
@@ -186,7 +253,6 @@ function loadProgressFromSession(session) {
 
   userAnswers.value = progress.answers || [];
   currentIndex.value = progress.currentIndex || 0;
-
 
   if (progress.isCompleted) {
     quizCompleted.value = true;
@@ -248,7 +314,6 @@ async function saveQuizProgress() {
 
 async function loadSessionFromSupabase() {
   const telegramId = getTelegramId();
-
   if (!telegramId) {
     console.warn('⚠️ Telegram ID не найден, сессия не загружена');
     return;
@@ -368,25 +433,28 @@ function onSubscriptionVerified() {
   subscriptionVerified.value = true;
 }
 
-// Модальное окно диплома
+// ====== Логика диплома (с предзагрузкой и быстрой отправкой) ======
 function openDiplomaModal() {
   nickname.value = '';
   showDiplomaModal.value = true;
-  cancelRequest = false; // Сбрасываем флаг отмены при открытии
+  cancelRequest = false;
+  // Если диплом ещё не предзагружен, запускаем (на всякий случай)
+  if (!preloadedDiplomaBlob && !preloadPromise) {
+    const finalScore = (progress?.finalScore * 5) || (score.value * 5);
+    if (finalScore >= 60) preloadDiploma();
+  }
 }
 
 function closeDiplomaModal() {
   showDiplomaModal.value = false;
 }
 
-// Отмена отправки
 function cancelDiploma() {
   cancelRequest = true;
   closeDiplomaModal();
 }
 
-// Функция отправки диплома через прямой вызов API бота
-const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN; // Твой токен
+const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
 
 async function submitDiploma() {
   if (!nickname.value.trim()) return;
@@ -396,7 +464,7 @@ async function submitDiploma() {
     return;
   }
 
-  const finalScore =(progress?.finalScore * 5) ||  (score.value * 5);
+  const finalScore = (progress?.finalScore * 5) || (score.value * 5);
   const total = data.value.length * 5;
   const userName = nickname.value.trim();
   const telegramId = getTelegramId();
@@ -409,103 +477,61 @@ async function submitDiploma() {
   isSending.value = true;
   cancelRequest = false;
 
-  // Создаём контейнер для диплома
-  const diplomaDiv = document.createElement('div');
-  diplomaDiv.style.position = 'absolute';
-  diplomaDiv.style.left = '-9999px';
-  diplomaDiv.style.top = '0';
-  diplomaDiv.style.width = '1300px';
-  diplomaDiv.style.height = '1000px';
-  diplomaDiv.style.backgroundImage = 'url(/diplom.jpg)';
-  diplomaDiv.style.backgroundSize = 'cover';
-  diplomaDiv.style.backgroundPosition = 'center';
-  diplomaDiv.style.color = 'white';
-  diplomaDiv.style.fontFamily = 'Georgia, serif';
-  diplomaDiv.style.textAlign = 'center';
-
-diplomaDiv.innerHTML = `
-
-  <div style="position: absolute; top: 450px; left: 0; right: 0;">
-    <h2 style="font-size: 54px; font-weight: 600; font-family: "Geologica", sans-serif; margin: 0; color: white;">${userName}</h2>
-  </div>
-  <div style="position: absolute; bottom: 123px; left: 195px;">
-    <p style="font-size: 30px; text align: left; font-weight: 600">${new Date().toLocaleDateString()}</p>
-  </div>
-`;
-
-
-  document.body.appendChild(diplomaDiv);
-
-
   try {
-    // Проверяем, не отменено ли
-    if (cancelRequest) {
-      document.body.removeChild(diplomaDiv);
-      return;
+    // 1. Используем предзагруженный Blob, если есть, иначе генерируем на лету
+    let imageBlob = preloadedDiplomaBlob;
+    if (!imageBlob) {
+      console.log('⚠️ Предзагрузки нет, генерируем сейчас...');
+      imageBlob = await generateDiplomaBlob(userName, finalScore, total);
+    } else {
+      console.log('⚡ Отправка из предзагруженного кэша');
     }
-    
-    const canvas = await html2canvas(diplomaDiv, {
-  scale: 4,                    // Увеличь с 2 до 3-4 для лучшего качества
-  backgroundColor: null,
-  useCORS: true,
-  allowTaint: false,
-  logging: false,
-  imageTimeout: 0,
-  pixelRatio: window.devicePixelRatio || 2  // Используем родное разрешение экрана
-});
-    
-    // Проверяем, не отменено ли
-    if (cancelRequest) {
-      document.body.removeChild(diplomaDiv);
-      return;
-    }
-    
-    document.body.removeChild(diplomaDiv);
-    
-    // Конвертируем canvas в Blob
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-    
-    // Проверяем, не отменено ли
+
     if (cancelRequest) return;
-    
-    // Создаём FormData для отправки файла
+
+    // 2. Отправляем через API бота
     const formData = new FormData();
     formData.append('chat_id', telegramId);
-    formData.append('photo', blob, `diplom_${userName}.png`);
+    formData.append('photo', imageBlob, `diplom_${userName}.jpg`);
     formData.append('caption', `🎓 *Диплом для ${userName}*\nРезультат: ${finalScore} из ${total} баллов`);
     formData.append('parse_mode', 'Markdown');
-    
-    
-    // Отправляем фото через Telegram Bot API
+
     const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
       method: 'POST',
       body: formData
     });
-    
-    // Проверяем, не отменено ли
+
     if (cancelRequest) return;
-    
+
     const result = await response.json();
-    
     if (result.ok) {
       remainingAttempts.value--;
       alert(`✅ Диплом отправлен в Telegram! Осталось попыток: ${remainingAttempts.value}`);
+      closeDiplomaModal();
     } else {
-      console.error('Ошибка:', result);
+      console.error('Ошибка API Telegram:', result);
       alert('❌ Ошибка при отправке диплома. Попробуйте позже.');
     }
-    
-    closeDiplomaModal();
   } catch (err) {
     if (!cancelRequest) {
       console.error('Ошибка:', err);
       alert('Ошибка при создании или отправке диплома');
     }
-    document.body.removeChild(diplomaDiv);
   } finally {
     isSending.value = false;
   }
 }
+
+// ====== НАБЛЮДАТЕЛЬ: предзагрузка диплома при завершении теста ======
+watch([quizFinished, quizCompleted], async ([finished, completed]) => {
+  if (finished || completed) {
+    const currentScore = (progress?.finalScore * 5) || (score.value * 5);
+    if (currentScore >= 60) {
+      // Ждём, чтобы ник успел ввести (но в любом случае предзагружаем с временным ником)
+      await preloadDiploma();
+    }
+  }
+});
 
 // ====== Lifecycle ======
 onMounted(async () => {
@@ -514,6 +540,7 @@ onMounted(async () => {
 </script>
 
 <style>
+/* Все стили остаются БЕЗ ИЗМЕНЕНИЙ */
 @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 
 @keyframes fadeSlideDown {
